@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>代理商渠道分析技能库 | Agent Channel Analytics</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Vue 3 -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <!-- Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        display: ['Plus Jakarta Sans', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#F0F5FF',
+                            100: '#E5EDFF',
+                            500: '#3B82F6', // Corporate Blue
+                            600: '#2563EB',
+                            700: '#1D4ED8',
+                            900: '#1E3A8A',
+                        },
+                        slate: {
+                            50: '#F8FAFC',
+                            100: '#F1F5F9',
+                            800: '#1E293B',
+                            900: '#0F172A',
+                        }
+                    },
+                    boxShadow: {
+                        'subtle': '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
+                        'card': '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)',
+                        'card-hover': '0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 10px 10px -5px rgba(0, 0, 0, 0.01)',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background-color: #F8FAFC;
+            color: #0F172A;
+        }
+
+        /* Clean Card */
+        .clean-card {
+            background: white;
+            border: 1px solid #E2E8F0;
+            transition: all 0.3s ease;
+        }
+
+        .clean-card:hover {
+            border-color: #BFDBFE;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px -5px rgba(37, 99, 235, 0.08);
+        }
+
+        /* Subtle Grid Pattern */
+        .bg-grid {
+            background-size: 40px 40px;
+            background-image: radial-gradient(circle, #CBD5E1 1px, transparent 1px);
+            opacity: 0.3;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #F1F5F9; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #CBD5E1; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94A3B8; 
+        }
+    </style>
+</head>
+<body class="antialiased min-h-screen relative selection:bg-blue-100 selection:text-blue-900">
+    <!-- Background Decoration -->
+    <div class="fixed inset-0 bg-grid pointer-events-none z-0"></div>
+    <div class="fixed top-0 right-0 w-[500px] h-[500px] bg-blue-50 rounded-full blur-3xl -z-10 opacity-50 translate-x-1/2 -translate-y-1/2"></div>
+
+    <div id="app" class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        
+        <!-- Header -->
+        <header class="flex justify-between items-center mb-16 bg-white/80 backdrop-blur-md sticky top-0 z-50 py-4 px-6 rounded-2xl border border-slate-100 shadow-sm">
+            <div class="flex items-center space-x-3">
+                <img src="https://www.chinaunicom.com.cn/_nuxt/img/logo.2d0447c.png" alt="China Unicom" class="w-24 h-10 object-contain">
+                <div>
+                    <h1 class="font-display font-bold text-lg tracking-tight text-slate-900 leading-tight">Channel<span class="text-brand-600">Master</span></h1>
+                    <p class="text-[10px] text-slate-500 font-medium tracking-wider uppercase">政企数智 · 代理商分析</p>
+                </div>
+            </div>
+            <nav class="hidden md:flex items-center space-x-1">
+                <a href="#" class="px-4 py-2 text-sm font-medium text-slate-600 hover:text-brand-600 hover:bg-slate-50 rounded-lg transition-colors">运营概览</a>
+                <a href="#" class="px-4 py-2 text-sm font-medium text-brand-700 bg-brand-50 rounded-lg transition-colors">技能模型</a>
+                <a href="#" class="px-4 py-2 text-sm font-medium text-slate-600 hover:text-brand-600 hover:bg-slate-50 rounded-lg transition-colors">稽核中心</a>
+                <div class="h-6 w-px bg-slate-200 mx-2"></div>
+                
+                <div v-if="isLoggedIn" class="relative group">
+                    <button class="flex items-center space-x-2 px-3 py-1.5 rounded-full border border-slate-200 hover:border-brand-200 hover:bg-white transition-all">
+                        <div class="w-6 h-6 rounded-full bg-brand-100 flex items-center justify-center text-brand-600">
+                            <i data-lucide="user" class="w-3 h-3"></i>
+                        </div>
+                        <span class="text-xs font-medium text-slate-700">管理员</span>
+                    </button>
+                    <!-- Dropdown for Logout -->
+                    <div class="absolute right-0 top-full mt-2 w-32 bg-white border border-slate-100 rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
+                        <button @click="handleLogout" class="w-full text-left px-4 py-2 text-xs text-slate-600 hover:bg-slate-50 hover:text-red-600 rounded-lg">退出登录</button>
+                    </div>
+                </div>
+
+                <button v-else @click="showLoginModal = true" class="flex items-center space-x-2 px-4 py-1.5 rounded-full bg-slate-900 text-white hover:bg-brand-600 transition-colors shadow-sm">
+                    <span class="text-xs font-medium">登录</span>
+                </button>
+            </nav>
+        </header>
+
+        <!-- Hero Section -->
+        <section class="mb-16 relative">
+            <div class="max-w-3xl">
+                <div class="inline-flex items-center px-3 py-1 rounded-full border border-blue-100 bg-blue-50 text-brand-600 text-xs font-semibold mb-6">
+                    <span class="w-1.5 h-1.5 rounded-full bg-brand-500 mr-2"></span>
+                   渠道数据分析平台
+                </div>
+                
+                <h2 class="font-display text-4xl md:text-5xl font-bold mb-6 tracking-tight text-slate-900 leading-[1.15]">
+                    重塑渠道价值，<br>
+                    <span class="text-brand-600">让数据驱动每一笔佣金结算。</span>
+                </h2>
+                
+                <p class="text-slate-500 text-lg max-w-2xl mb-8 leading-relaxed">
+                    集成代理商全生命周期数据，<br>
+                    打造一站式数据分析平台。
+                </p>
+
+                <!-- Search Bar -->
+                <div class="max-w-lg relative group">
+                    <div class="relative flex items-center bg-white rounded-xl p-1.5 border border-slate-200 shadow-sm group-focus-within:ring-2 group-focus-within:ring-brand-500/20 group-focus-within:border-brand-500 transition-all">
+                        <i data-lucide="search" class="w-5 h-5 text-slate-400 ml-3"></i>
+                        <input 
+                            v-model="searchQuery" 
+                            type="text" 
+                            placeholder="搜索工具：" 
+                            class="w-full bg-transparent border-none focus:ring-0 text-slate-900 placeholder-slate-400 h-10 px-3 text-sm"
+                        >
+                        <button class="px-4 py-2 bg-slate-900 hover:bg-brand-600 text-white text-sm font-medium rounded-lg transition-colors whitespace-nowrap">
+                            搜索
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Login Modal -->
+        <div v-if="showLoginModal" class="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <!-- Backdrop -->
+            <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity" @click="showLoginModal = false"></div>
+            
+            <!-- Modal Content -->
+            <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden transform transition-all scale-100 animate-fade-in-up">
+                <div class="p-8">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="font-display text-2xl font-bold text-slate-900">欢迎回来</h3>
+                        <button @click="showLoginModal = false" class="text-slate-400 hover:text-slate-600 transition-colors">
+                            <i data-lucide="x" class="w-5 h-5"></i>
+                        </button>
+                    </div>
+                    
+                    <form @submit.prevent="handleLogin" class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">账号</label>
+                            <input v-model="username" type="text" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition-all text-sm text-slate-900 placeholder-slate-400" placeholder="请输入您的账号">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">密码</label>
+                            <input v-model="password" type="password" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition-all text-sm text-slate-900 placeholder-slate-400" placeholder="••••••••">
+                        </div>
+                        
+                        <div class="flex items-center justify-between text-xs pt-2">
+                            <label class="flex items-center space-x-2 cursor-pointer">
+                                <input type="checkbox" class="rounded border-slate-300 text-brand-600 focus:ring-brand-500">
+                                <span class="text-slate-500">记住我</span>
+                            </label>
+                            <a href="#" class="text-brand-600 hover:text-brand-700 font-medium">忘记密码?</a>
+                        </div>
+                        
+                        <button type="submit" class="w-full py-3 bg-brand-600 hover:bg-brand-700 text-white rounded-xl font-semibold shadow-lg shadow-brand-500/30 transition-all active:scale-[0.98] mt-2">
+                            立即登录
+                        </button>
+                    </form>
+                </div>
+                <div class="bg-slate-50 px-8 py-4 border-t border-slate-100 text-center">
+                    <p class="text-xs text-slate-500">还没有账号? <a href="#" class="text-brand-600 font-medium hover:underline">联系管理员申请</a></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Categories -->
+        <div class="flex flex-wrap items-center gap-2 mb-10 border-b border-slate-200 pb-4">
+            <span class="text-xs font-bold text-slate-400 uppercase tracking-wider mr-4">筛选视图:</span>
+            <button 
+                v-for="cat in categories" 
+                :key="cat"
+                @click="activeCategory = cat"
+                :class="[
+                    'px-4 py-1.5 rounded-lg text-sm font-medium transition-all duration-200',
+                    activeCategory === cat 
+                        ? 'bg-slate-900 text-white shadow-md' 
+                        : 'bg-white text-slate-500 hover:bg-slate-100 hover:text-slate-900'
+                ]"
+            >
+                {{ cat }}
+            </button>
+        </div>
+
+        <!-- Grid Skills -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            
+            <!-- Featured Card (Large) - 代理商月租大盘分析 -->
+            <div v-if="showFeatured" class="col-span-1 md:col-span-2 lg:col-span-2 clean-card rounded-2xl p-8 relative overflow-hidden group">
+                <div class="absolute top-0 right-0 w-64 h-full bg-gradient-to-l from-blue-50 to-transparent opacity-50"></div>
+                
+                <div class="relative z-10 flex flex-col md:flex-row h-full">
+                    <div class="flex-1 pr-8">
+                        <div class="flex items-center space-x-2 mb-4">
+                            <span class="px-2 py-0.5 rounded border border-blue-100 bg-blue-50 text-brand-600 text-[10px] font-bold uppercase tracking-wider">core</span>
+                            <span class="text-slate-400 text-xs font-medium">月租分析</span>
+                        </div>
+                        <h3 class="font-display text-2xl font-bold text-slate-900 mb-3">代理商月租大盘分析</h3>
+                        <p class="text-slate-500 leading-relaxed mb-6 text-sm">
+                            上传数据表原件，直观展示全网代理商新签、流失、净签月租概览及单个代理商情况视图。支持多维度筛选与趋势对比。
+                        </p>
+                        
+                        <div class="flex items-center space-x-4 mt-auto">
+                            <button onclick="window.location.href='agent_revenue_analysis.html'" class="flex items-center space-x-2 bg-brand-600 text-white px-5 py-2.5 rounded-lg text-sm font-semibold hover:bg-brand-700 transition-all shadow-lg shadow-blue-500/20">
+                                <i data-lucide="bar-chart-2" class="w-4 h-4"></i>
+                                <span>进入分析看板</span>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Decorative Chart Area -->
+                    <div class="hidden md:flex w-1/3 items-center justify-center border-l border-slate-100 pl-8">
+                        <div class="text-center w-full">
+                            <div class="flex justify-between items-end mb-2">
+                                <div class="w-8 h-12 bg-blue-100 rounded-t"></div>
+                                <div class="w-8 h-20 bg-blue-200 rounded-t"></div>
+                                <div class="w-8 h-32 bg-brand-500 rounded-t relative">
+                                    <span class="absolute -top-6 left-1/2 -translate-x-1/2 text-xs font-bold text-brand-600">+12%</span>
+                                </div>
+                                <div class="w-8 h-24 bg-blue-200 rounded-t"></div>
+                                <div class="w-8 h-16 bg-blue-100 rounded-t"></div>
+                            </div>
+                            <div class="border-t border-slate-200 pt-2 text-xs text-slate-400 uppercase tracking-wide">月租净增趋势</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Standard Cards -->
+            <div 
+                v-for="skill in filteredSkills" 
+                :key="skill.id"
+                class="clean-card rounded-2xl p-6 relative group flex flex-col h-full"
+            >
+                <div class="flex justify-between items-start mb-4">
+                    <div :class="['w-10 h-10 rounded-lg flex items-center justify-center border transition-colors duration-300', skill.iconClass]">
+                        <i :data-lucide="skill.icon" :class="['w-5 h-5', skill.iconColor]"></i>
+                    </div>
+                    <div class="opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                        <button class="p-1.5 hover:bg-slate-100 rounded-md text-slate-400 hover:text-slate-900">
+                            <i data-lucide="arrow-up-right" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <h3 class="font-display text-lg font-bold text-slate-900 mb-2">{{ skill.title }}</h3>
+                <p class="text-slate-500 text-sm leading-relaxed mb-6 flex-grow">{{ skill.desc }}</p>
+                
+                <div class="flex items-center justify-between mt-auto pt-4 border-t border-slate-100">
+                    <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-slate-50 text-slate-500 border border-slate-100">
+                        {{ skill.category }}
+                    </span>
+                    <a v-if="skill.link" :href="skill.link" class="flex items-center space-x-1 text-xs text-brand-600 hover:text-brand-700 font-medium">
+                        <i data-lucide="arrow-right-circle" class="w-3 h-3"></i>
+                        <span>进入功能</span>
+                    </a>
+                    <button v-else class="flex items-center space-x-1 text-xs text-slate-400 cursor-not-allowed font-medium">
+                        <i data-lucide="lock" class="w-3 h-3"></i>
+                        <span>敬请期待</span>
+                    </button>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Footer -->
+        <footer class="mt-20 border-t border-slate-200 py-8 flex flex-col md:flex-row justify-between items-center text-slate-400 text-sm">
+            <div class="flex items-center space-x-2 mb-4 md:mb-0">
+                <span class="font-display font-bold text-slate-700">ChannelMaster</span>
+                <span>&copy; 2026 生态合作部 · 内部专用</span>
+            </div>
+            <div class="flex space-x-6">
+                <a href="user_manual.html" class="hover:text-slate-900 transition-colors">使用手册</a>
+                <a href="roadmap.html" class="hover:text-slate-900 transition-colors">泳道图</a>
+                <a href="#" class="hover:text-slate-900 transition-colors">数据字典</a>
+                <a href="#" class="hover:text-slate-900 transition-colors">权限申请</a>
+            </div>
+        </footer>
+
+    </div>
+
+    <script>
+        const { createApp, ref, computed, onMounted } = Vue;
+
+        createApp({
+            setup() {
+                const searchQuery = ref('');
+                const activeCategory = ref('全部');
+                const showLoginModal = ref(false);
+                const isLoggedIn = ref(false);
+                const username = ref('');
+                const password = ref('');
+                const categories = ['全部', '月租分析', '收入分析', '集群分析'];
+
+                const handleLogin = () => {
+                    if(username.value && password.value) {
+                        isLoggedIn.value = true;
+                        showLoginModal.value = false;
+                        username.value = '';
+                        password.value = '';
+                    } else {
+                        alert('请输入用户名和密码');
+                    }
+                };
+
+                const handleLogout = () => {
+                    isLoggedIn.value = false;
+                };
+
+                // 核心的三个标准卡片（Featured卡片单独写在template里了，这里只放剩下的）
+                // 1. 代理商月租大盘分析 (Featured)
+                // 2. 流失分析
+                // 3. 收入分析
+                // 4. 集群分析
+
+                const skills = [
+                    {
+                        id: 2,
+                        title: '流失分析',
+                        desc: '判断流失业务原因，智能归因分析：流失到其他代理商、转直销或纯流失，并展现可视化情况视图。',
+                        category: '月租分析',
+                        icon: 'user-x',
+                        iconClass: 'bg-red-50 border-red-100',
+                        iconColor: 'text-red-600',
+                        link: 'churn_analysis.html'
+                    },
+                    {
+                        id: 3,
+                        title: '收入分析',
+                        desc: '展示各代理商当前产品属性（如双线、IDC）、客户属性（如党政军）的收入构成情况。',
+                        category: '收入分析',
+                        icon: 'coins',
+                        iconClass: 'bg-emerald-50 border-emerald-100',
+                        iconColor: 'text-emerald-600',
+                    },
+                    {
+                        id: 4,
+                        title: '集群分析',
+                        desc: '展示各代理商新发展工作手机情况。',
+                        category: '集群分析',
+                        icon: 'users',
+                        iconClass: 'bg-purple-50 border-purple-100',
+                        iconColor: 'text-purple-600',
+                    }
+                ];
+
+                const showFeatured = computed(() => {
+                    if (searchQuery.value) return false; // 搜索时不显示大卡片，只显示列表匹配结果
+                    return activeCategory.value === '全部' || activeCategory.value === '月租分析';
+                });
+
+                const filteredSkills = computed(() => {
+                    return skills.filter(skill => {
+                        const matchesSearch = skill.title.toLowerCase().includes(searchQuery.value.toLowerCase()) || 
+                                            skill.desc.toLowerCase().includes(searchQuery.value.toLowerCase());
+                        const matchesCategory = activeCategory.value === '全部' || skill.category === activeCategory.value;
+                        return matchesSearch && matchesCategory;
+                    });
+                });
+
+                onMounted(() => {
+                    lucide.createIcons();
+                });
+
+                return {
+                    searchQuery,
+                    activeCategory,
+                    categories,
+                    filteredSkills,
+                    showFeatured,
+                    showLoginModal,
+                    isLoggedIn,
+                    username,
+                    password,
+                    handleLogin,
+                    handleLogout
+                };
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>

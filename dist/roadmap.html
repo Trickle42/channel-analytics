@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>跨部门协同泳道图 | Project Collaboration Roadmap</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Vue 3 -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <!-- Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        display: ['Plus Jakarta Sans', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#F0F5FF',
+                            100: '#E5EDFF',
+                            500: '#3B82F6',
+                            600: '#2563EB',
+                            700: '#1D4ED8',
+                            900: '#1E3A8A',
+                        },
+                        slate: {
+                            50: '#F8FAFC',
+                            100: '#F1F5F9',
+                            200: '#E2E8F0',
+                            300: '#CBD5E1',
+                            400: '#94A3B8',
+                            500: '#64748B',
+                            600: '#475569',
+                            700: '#334155',
+                            800: '#1E293B',
+                            900: '#0F172A',
+                        }
+                    },
+                    boxShadow: {
+                        'card': '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)',
+                        'float': '0 10px 30px -5px rgba(37, 99, 235, 0.15)',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body { background-color: #F8FAFC; color: #0F172A; }
+        .swimlane-grid {
+            display: grid;
+            grid-template-columns: 240px repeat(12, 1fr); /* Sidebar + 12 Weeks/Months */
+            grid-auto-rows: minmax(100px, auto);
+        }
+        .timeline-cell {
+            border-right: 1px dashed #E2E8F0;
+        }
+        .timeline-cell:last-child { border-right: none; }
+        
+        /* Task Bar Styles */
+        .task-bar {
+            position: relative;
+            z-index: 10;
+            transition: all 0.2s ease;
+        }
+        .task-bar:hover {
+            transform: translateY(-2px);
+            filter: brightness(0.95);
+            z-index: 20;
+        }
+        
+        /* Custom Scrollbar for horizontal scrolling */
+        .overflow-x-auto::-webkit-scrollbar { height: 8px; }
+        .overflow-x-auto::-webkit-scrollbar-track { background: transparent; }
+        .overflow-x-auto::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 4px; }
+        .overflow-x-auto::-webkit-scrollbar-thumb:hover { background: #94A3B8; }
+    </style>
+</head>
+<body class="antialiased h-screen flex flex-col overflow-hidden selection:bg-brand-100 selection:text-brand-900">
+
+    <div id="app" class="flex flex-col h-full">
+        
+        <!-- Navbar -->
+        <header class="bg-white border-b border-slate-200 px-6 py-3 flex justify-between items-center shrink-0 z-40 shadow-sm">
+            <div class="flex items-center gap-4">
+                <a href="index.html" class="flex items-center text-slate-500 hover:text-brand-600 transition-colors">
+                    <i data-lucide="arrow-left" class="w-5 h-5"></i>
+                </a>
+                <div class="h-6 w-px bg-slate-200"></div>
+                <div>
+                    <h1 class="font-display font-bold text-lg text-slate-900 flex items-center gap-2">
+                        <i data-lucide="kanban-square" class="w-5 h-5 text-brand-600"></i>
+                        跨部门协同推进泳道图
+                    </h1>
+                    <p class="text-[10px] text-slate-500 font-medium tracking-wide uppercase">test</p>
+                </div>
+            
+            </div>
+            
+            <div class="flex items-center gap-3">
+                <button @click="clearCache" class="text-xs text-slate-400 hover:text-slate-600 font-medium mr-2" title="重置所有数据">清除缓存</button>
+                 <div v-if="currentUser" class="flex items-center gap-3">
+                    <div class="flex flex-col items-end">
+                        <span class="text-xs font-bold text-slate-800">{{ currentUser.name }}</span>
+                        <span class="text-[10px] text-slate-500">{{ currentUser.department }}</span>
+                    </div>
+                    <button @click="logout" class="text-xs text-slate-500 hover:text-red-600 font-medium">退出</button>
+                 </div>
+                 <div v-else>
+                     <button @click="showLoginModal = true" class="text-sm font-semibold text-brand-600 hover:underline">登录</button>
+                 </div>
+                <div class="h-6 w-px bg-slate-200 mx-2"></div>
+                <button @click="openTaskModal()" class="bg-brand-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-brand-700 flex items-center gap-2 shadow-lg shadow-brand-500/20">
+                    <i data-lucide="plus" class="w-4 h-4"></i>
+                    <span>新建任务</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Swimlane Area -->
+        <main class="flex-1 overflow-hidden flex flex-col relative bg-white">
+            
+            <!-- Timeline Header (Sticky Top) -->
+            <div class="overflow-x-auto flex-1 flex flex-col" ref="scrollContainer">
+                <div class="min-w-[1400px]"> <!-- Ensure horizontal scroll width -->
+                    
+                    <!-- Header Row -->
+                    <div class="sticky top-0 z-30 bg-white border-b border-slate-200 grid grid-cols-[240px_repeat(12,1fr)] shadow-sm">
+                        <!-- Top-Left Corner -->
+                        <div class="p-4 border-r border-slate-200 bg-slate-50/80 backdrop-blur flex items-end justify-between">
+                            <span class="text-xs font-bold text-slate-400 uppercase">部门</span>
+                            <span class="text-xs font-bold text-slate-400 uppercase">时间轴 (2026)</span>
+                        </div>
+                        
+                        <!-- Time Columns -->
+                        <div v-for="(month, idx) in months" :key="idx" class="col-span-2 border-r border-slate-200 last:border-r-0">
+                            <div class="px-3 py-2 text-xs font-bold text-slate-700 bg-slate-50 border-b border-slate-100 sticky top-0">
+                                {{ month.name }}
+                            </div>
+                            <div class="grid grid-cols-2 h-8">
+                                <div class="border-r border-slate-100 flex items-center justify-center text-[10px] text-slate-400">上旬</div>
+                                <div class="flex items-center justify-center text-[10px] text-slate-400">下旬</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Swimlanes -->
+                    <div class="relative">
+                        <!-- Background Grid Lines -->
+                        <div class="absolute inset-0 grid grid-cols-[240px_repeat(12,1fr)] pointer-events-none">
+                            <div class="border-r border-slate-200 bg-slate-50/30"></div> <!-- Sidebar BG -->
+                            <div v-for="i in 12" :key="i" class="border-r border-dashed border-slate-100 h-full"></div>
+                        </div>
+
+                        <!-- Rows -->
+                        <div v-for="dept in departments" :key="dept.id" class="grid grid-cols-[240px_repeat(12,1fr)] border-b border-slate-100 min-h-[140px] group">
+                            
+                            <!-- Dept Header (Sticky Left) -->
+                            <div class="sticky left-0 z-20 bg-white border-r border-slate-200 p-5 flex flex-col justify-center group-hover:bg-slate-50 transition-colors relative">
+                                <div class="flex items-center gap-3 mb-2 group/header cursor-pointer" @click="openDeptModal(dept)">
+                                    <div :class="['w-8 h-8 rounded-lg flex items-center justify-center', dept.iconBg]">
+                                        <i :data-lucide="dept.icon" :class="['w-4 h-4', dept.iconColor]"></i>
+                                    </div>
+                                    <h3 class="font-bold text-slate-800 text-sm hover:text-brand-600 transition-colors">{{ dept.name }}</h3>
+                                    <i data-lucide="edit-2" class="w-3 h-3 text-slate-400 opacity-0 group-hover/header:opacity-100 transition-opacity"></i>
+                                </div>
+                                <div class="flex items-center gap-4 text-[10px] text-slate-400 pl-11">
+                                    <span class="flex items-center gap-1"><i data-lucide="users" class="w-3 h-3"></i> {{ dept.members }}人</span>
+                                    <span class="flex items-center gap-1"><i data-lucide="list-todo" class="w-3 h-3"></i> {{ dept.tasks.length }}任务</span>
+                                </div>
+                            </div>
+
+                            <!-- Task Area -->
+                            <div class="col-span-12 relative p-4">
+                                <div v-for="task in dept.tasks" :key="task.id" 
+                                     @click="openTaskModal(task, dept.id)"
+                                     :class="['task-bar absolute h-16 rounded-xl border-l-4 p-3 shadow-sm cursor-pointer flex flex-col justify-between', task.bgClass, task.borderClass]"
+                                     :style="{ left: getLeftPos(task.start), width: getWidth(task.duration), top: getTopPos(task.row) }">
+                                    
+                                    <div class="flex justify-between items-start">
+                                        <span class="text-xs font-bold text-slate-700 truncate pr-2">{{ task.title }}</span>
+                                        <div v-if="task.avatar" class="w-5 h-5 rounded-full bg-white border border-slate-200 flex items-center justify-center text-[8px] font-bold text-slate-600 shrink-0">
+                                            {{ task.avatar }}
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="flex items-center justify-between mt-1">
+                                        <div class="w-full bg-white/50 h-1.5 rounded-full overflow-hidden">
+                                            <div class="h-full rounded-full" :class="task.progressColor" :style="{ width: task.progress + '%' }"></div>
+                                        </div>
+                                        <span class="text-[9px] font-medium ml-2 text-slate-500">{{ task.progress }}%</span>
+                                    </div>
+
+                                    <!-- Connector Dot (Visual Only) -->
+                                    <div v-if="task.connectTo" class="absolute top-1/2 -right-1 w-2 h-2 rounded-full bg-slate-300 border-2 border-white translate-x-1/2"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                    
+                </div>
+            </div>
+        </main>
+        
+        <!-- Legend Footer -->
+        <footer class="bg-white border-t border-slate-200 px-6 py-2 flex items-center justify-between text-xs text-slate-500 shrink-0">
+            <div class="flex items-center gap-6">
+                <span class="font-bold">状态图例:</span>
+                <div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-emerald-500"></span> 正常推进</div>
+                <div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-amber-500"></span> 存在风险</div>
+                <div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-rose-500"></span> 已延期</div>
+                <div class="h-4 w-px bg-slate-200 mx-2"></div>
+                <div class="flex items-center gap-2"><i data-lucide="check-circle-2" class="w-3 h-3 text-brand-600"></i> 里程碑节点</div>
+            </div>
+            <button @click="showManual = true" class="text-brand-600 hover:text-brand-700 font-bold flex items-center gap-1">
+                <i data-lucide="book-open" class="w-4 h-4"></i>
+                使用手册
+            </button>
+        </footer>
+
+        <!-- User Manual Modal -->
+        <div v-if="showManual" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" @click="showManual = false"></div>
+            <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl h-[80vh] flex flex-col overflow-hidden animate-fade-in-up">
+                <!-- Manual Header -->
+                <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                    <h3 class="font-display text-lg font-bold text-slate-900 flex items-center gap-2">
+                        <i data-lucide="book-open" class="w-5 h-5 text-brand-600"></i>
+                        泳道图使用手册
+                    </h3>
+                    <button @click="showManual = false" class="text-slate-400 hover:text-slate-600 transition-colors">
+                        <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
+                </div>
+                
+                <!-- Manual Content -->
+                <div class="flex-1 overflow-y-auto p-8 prose prose-sm max-w-none text-slate-600">
+                    
+                    <div class="mb-8">
+                        <h4 class="text-slate-900 font-bold text-base mb-3 flex items-center gap-2">
+                            <span class="w-6 h-6 rounded-full bg-brand-100 text-brand-600 flex items-center justify-center text-xs">1</span>
+                            用户登录与注册
+                        </h4>
+                        <p class="mb-2">点击右上角的“登录”按钮即可进入系统。如果您是首次使用，请在登录弹窗中点击“去注册”。</p>
+                        <ul class="list-disc pl-5 space-y-1 bg-slate-50 p-4 rounded-lg border border-slate-100">
+                            <li><strong>注册：</strong> 填写用户名、密码、真实姓名并选择所属部门。</li>
+                            <li><strong>登录：</strong> 使用注册的账号密码登录。系统会自动保存您的登录状态。</li>
+                            <li><strong>数据安全：</strong> 所有数据仅存储在您的本地浏览器中，请勿清除浏览器缓存。</li>
+                        </ul>
+                    </div>
+
+                    <div class="mb-8">
+                        <h4 class="text-slate-900 font-bold text-base mb-3 flex items-center gap-2">
+                            <span class="w-6 h-6 rounded-full bg-brand-100 text-brand-600 flex items-center justify-center text-xs">2</span>
+                            任务管理
+                        </h4>
+                        <p class="mb-2">您可以对各部门的任务条进行全生命周期管理。</p>
+                        <ul class="list-disc pl-5 space-y-1">
+                            <li><strong>新建任务：</strong> 登录后，点击右上角“新建任务”按钮。填写标题、选择部门、设置时间跨度（0-12代表1-6月）及进度。</li>
+                            <li><strong>编辑任务：</strong> 点击任意已存在的任务条，可修改其所有属性或删除该任务。</li>
+                            <li><strong>颜色规则：</strong> 任务条颜色会根据所属部门自动匹配（如政企BG为粉色，网络条线为绿色）。</li>
+                        </ul>
+                    </div>
+
+                    <div class="mb-8">
+                        <h4 class="text-slate-900 font-bold text-base mb-3 flex items-center gap-2">
+                            <span class="w-6 h-6 rounded-full bg-brand-100 text-brand-600 flex items-center justify-center text-xs">3</span>
+                            部门信息维护
+                        </h4>
+                        <p>登录状态下，点击左侧泳道表头的部门名称或图标，可以修改部门名称及成员人数。</p>
+                    </div>
+
+                    <div>
+                        <h4 class="text-slate-900 font-bold text-base mb-3 flex items-center gap-2">
+                            <span class="w-6 h-6 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center text-xs">!</span>
+                            注意事项
+                        </h4>
+                        <p class="text-xs bg-rose-50 text-rose-700 p-3 rounded border border-rose-100">
+                            <strong>关于数据重置：</strong> 顶部导航栏的“清除缓存”按钮会清空所有本地数据（包括用户和任务），请谨慎操作。建议定期截图保存重要排期。
+                        </p>
+                    </div>
+
+                </div>
+                
+                <!-- Manual Footer -->
+                <div class="px-6 py-4 border-t border-slate-100 bg-slate-50 text-right">
+                    <button @click="showManual = false" class="px-6 py-2 bg-brand-600 text-white rounded-lg text-sm font-bold hover:bg-brand-700 shadow-lg shadow-brand-500/20">
+                        我已了解
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Login/Register Modal -->
+        <div v-if="showLoginModal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" @click="showLoginModal = false"></div>
+            <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden p-6 animate-fade-in-up">
+                <h3 class="font-display text-xl font-bold text-slate-900 mb-4">{{ isRegisterMode ? '注册账户' : '用户登录' }}</h3>
+                <form @submit.prevent="handleAuth" class="space-y-3">
+                    <input v-model="authForm.username" type="text" placeholder="用户名" class="w-full px-4 py-2 rounded-lg border border-slate-200 text-sm focus:ring-2 focus:ring-brand-500 outline-none" required>
+                    <input v-model="authForm.password" type="password" placeholder="密码" class="w-full px-4 py-2 rounded-lg border border-slate-200 text-sm focus:ring-2 focus:ring-brand-500 outline-none" required>
+                    <div v-if="isRegisterMode" class="space-y-3 animate-fade-in">
+                        <input v-model="authForm.name" type="text" placeholder="真实姓名" class="w-full px-4 py-2 rounded-lg border border-slate-200 text-sm focus:ring-2 focus:ring-brand-500 outline-none" required>
+                        <select v-model="authForm.department" class="w-full px-4 py-2 rounded-lg border border-slate-200 text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+                            <option value="" disabled selected>选择部门</option>
+                            <option v-for="d in departments" :key="d.id" :value="d.name">{{ d.name }}</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="w-full py-2 bg-brand-600 text-white rounded-lg font-bold text-sm hover:bg-brand-700 transition">{{ isRegisterMode ? '立即注册' : '登录' }}</button>
+                </form>
+                <div class="mt-4 text-center text-xs text-slate-500">
+                    <span v-if="!isRegisterMode">没有账号? <button @click="isRegisterMode = true" class="text-brand-600 font-bold hover:underline">去注册</button></span>
+                    <span v-else>已有账号? <button @click="isRegisterMode = false" class="text-brand-600 font-bold hover:underline">去登录</button></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Department Edit Modal -->
+        <div v-if="showDeptModal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" @click="showDeptModal = false"></div>
+            <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-sm p-6">
+                <h3 class="font-bold text-lg mb-4">编辑部门信息</h3>
+                <input v-model="editingDept.name" type="text" class="w-full px-4 py-2 border rounded-lg mb-4 text-sm" placeholder="部门名称">
+                <input v-model="editingDept.members" type="number" class="w-full px-4 py-2 border rounded-lg mb-4 text-sm" placeholder="成员人数">
+                <div class="flex justify-end gap-2">
+                    <button @click="showDeptModal = false" class="px-4 py-2 text-sm text-slate-500 hover:bg-slate-50 rounded-lg">取消</button>
+                    <button @click="saveDept" class="px-4 py-2 text-sm bg-brand-600 text-white rounded-lg hover:bg-brand-700">保存</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Task Edit Modal -->
+        <div v-if="showTaskModal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" @click="showTaskModal = false"></div>
+            <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
+                <h3 class="font-bold text-lg mb-4">{{ editingTask.id ? '编辑任务' : '新建任务' }}</h3>
+                <div class="space-y-3">
+                    <div>
+                        <label class="text-xs font-bold text-slate-500 uppercase">任务标题</label>
+                        <input v-model="editingTask.title" type="text" class="w-full mt-1 px-3 py-2 border rounded-lg text-sm" placeholder="输入任务名称">
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="text-xs font-bold text-slate-500 uppercase">所属部门</label>
+                            <select v-model="editingTask.deptId" class="w-full mt-1 px-3 py-2 border rounded-lg text-sm">
+                                <option v-for="d in departments" :key="d.id" :value="d.id">{{ d.name }}</option>
+                            </select>
+                        </div>
+                         <div>
+                            <label class="text-xs font-bold text-slate-500 uppercase">负责人缩写</label>
+                            <input v-model="editingTask.avatar" type="text" maxlength="2" class="w-full mt-1 px-3 py-2 border rounded-lg text-sm" placeholder="如: A">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="text-xs font-bold text-slate-500 uppercase">开始时间 (0-12)</label>
+                            <input v-model.number="editingTask.start" type="number" step="0.5" class="w-full mt-1 px-3 py-2 border rounded-lg text-sm">
+                        </div>
+                        <div>
+                            <label class="text-xs font-bold text-slate-500 uppercase">持续时长 (0.5-12)</label>
+                            <input v-model.number="editingTask.duration" type="number" step="0.5" class="w-full mt-1 px-3 py-2 border rounded-lg text-sm">
+                        </div>
+                    </div>
+                    <div>
+                         <label class="text-xs font-bold text-slate-500 uppercase">进度 ({{ editingTask.progress }}%)</label>
+                         <input v-model.number="editingTask.progress" type="range" min="0" max="100" class="w-full mt-2 accent-brand-600">
+                    </div>
+                    <div>
+                        <label class="text-xs font-bold text-slate-500 uppercase">行号 (0-1)</label>
+                        <select v-model.number="editingTask.row" class="w-full mt-1 px-3 py-2 border rounded-lg text-sm">
+                            <option :value="0">第一行</option>
+                            <option :value="1">第二行</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="flex justify-between items-center mt-6">
+                    <button v-if="editingTask.id" @click="deleteTask" class="text-red-500 text-sm font-bold hover:underline">删除任务</button>
+                    <div v-else></div>
+                    <div class="flex gap-2">
+                        <button @click="showTaskModal = false" class="px-4 py-2 text-sm text-slate-500 hover:bg-slate-50 rounded-lg">取消</button>
+                        <button @click="saveTask" class="px-4 py-2 text-sm bg-brand-600 text-white rounded-lg hover:bg-brand-700">保存</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        const { createApp, ref, reactive, onMounted, watch } = Vue;
+
+        createApp({
+            setup() {
+                const months = [
+                    { name: '1月 Jan' }, { name: '2月 Feb' }, { name: '3月 Mar' },
+                    { name: '4月 Apr' }, { name: '5月 May' }, { name: '6月 Jun' }
+                ];
+
+                // --- State Initialization ---
+                // Load from localStorage or use defaults
+                const savedDepts = localStorage.getItem('roadmap_departments');
+                const defaultDepartments = [
+                    {
+                        id: 'mkt', name: '政企BG', members: 12, 
+                        icon: 'briefcase', iconBg: 'bg-rose-50', iconColor: 'text-rose-600',
+                        tasks: [
+                            { id: 1, title: '2026 Q1 A', start: 0, duration: 1.5, row: 0, bgClass: 'bg-rose-50', borderClass: 'border-rose-500', progressColor: 'bg-rose-500', progress: 100, avatar: 'A' },
+                            { id: 2, title: '2026 Q1 B', start: 1, duration: 2, row: 1, bgClass: 'bg-rose-50', borderClass: 'border-rose-500', progressColor: 'bg-rose-500', progress: 65, avatar: 'B' },
+                            { id: 3, title: '2026 Q1 C', start: 5, duration: 3, row: 0, bgClass: 'bg-rose-50', borderClass: 'border-rose-500', progressColor: 'bg-rose-500', progress: 20, avatar: 'A' }
+                        ]
+                    },
+                    {
+                        id: 'net', name: '网络条线', members: 45,
+                        icon: 'network', iconBg: 'bg-emerald-50', iconColor: 'text-emerald-600',
+                        tasks: [
+                            { id: 6, title: '2026 Q1 A', start: 1, duration: 3, row: 0, bgClass: 'bg-emerald-50', borderClass: 'border-emerald-500', progressColor: 'bg-emerald-500', progress: 80, avatar: 'E' },
+                            { id: 7, title: '2026 Q1 A', start: 3, duration: 4, row: 1, bgClass: 'bg-emerald-50', borderClass: 'border-emerald-500', progressColor: 'bg-emerald-500', progress: 30, avatar: 'F' }
+                        ]
+                    },
+                    {
+                        id: 'dev', name: '数字化部', members: 18,
+                        icon: 'cpu', iconBg: 'bg-purple-50', iconColor: 'text-purple-600',
+                        tasks: [
+                            { id: 8, title: '2026 Q1 A', start: 0, duration: 5, row: 0, bgClass: 'bg-purple-50', borderClass: 'border-purple-500', progressColor: 'bg-purple-500', progress: 55, avatar: 'G' },
+                            { id: 9, title: '2026 Q1 A', start: 6, duration: 2, row: 0, bgClass: 'bg-purple-50', borderClass: 'border-purple-500', progressColor: 'bg-purple-500', progress: 0, avatar: 'H' }
+                        ]
+                    },
+                    {
+                        id: 'sales', name: '营销单元', members: 28,
+                        icon: 'store', iconBg: 'bg-brand-50', iconColor: 'text-brand-600',
+                        tasks: [
+                            { id: 4, title: '重点行业客户渗透', start: 0.5, duration: 4, row: 0, bgClass: 'bg-brand-50', borderClass: 'border-brand-500', progressColor: 'bg-brand-500', progress: 45, avatar: 'C' },
+                            { id: 5, title: '年度大单签约攻坚', start: 4, duration: 3, row: 1, bgClass: 'bg-brand-50', borderClass: 'border-brand-500', progressColor: 'bg-brand-500', progress: 10, avatar: 'D' }
+                        ]
+                    }
+                ];
+                
+                const departments = ref(savedDepts ? JSON.parse(savedDepts) : defaultDepartments);
+
+                // Persist changes
+                watch(departments, (newVal) => {
+                    localStorage.setItem('roadmap_departments', JSON.stringify(newVal));
+                }, { deep: true });
+
+                // --- Auth System ---
+                const showLoginModal = ref(false);
+                const showManual = ref(false);
+                const isRegisterMode = ref(false);
+                const currentUser = ref(null);
+                const authForm = reactive({ username: '', password: '', name: '', department: '' });
+
+                const users = ref(JSON.parse(localStorage.getItem('roadmap_users') || '[]'));
+                const sessionUser = localStorage.getItem('roadmap_session');
+                if (sessionUser) currentUser.value = JSON.parse(sessionUser);
+
+                const handleAuth = () => {
+                    if (isRegisterMode.value) {
+                        // Register
+                        if (users.value.find(u => u.username === authForm.username)) {
+                            alert('用户名已存在');
+                            return;
+                        }
+                        const newUser = { ...authForm };
+                        users.value.push(newUser);
+                        localStorage.setItem('roadmap_users', JSON.stringify(users.value));
+                        alert('注册成功，请登录');
+                        isRegisterMode.value = false;
+                    } else {
+                        // Login
+                        const user = users.value.find(u => u.username === authForm.username && u.password === authForm.password);
+                        if (user) {
+                            currentUser.value = user;
+                            localStorage.setItem('roadmap_session', JSON.stringify(user));
+                            showLoginModal.value = false;
+                            authForm.username = ''; authForm.password = '';
+                        } else {
+                            alert('用户名或密码错误');
+                        }
+                    }
+                };
+
+                const logout = () => {
+                    currentUser.value = null;
+                    localStorage.removeItem('roadmap_session');
+                };
+
+                const clearCache = () => {
+                    if(confirm('确定要清除所有本地缓存数据吗？这将重置所有部门名称、任务和用户数据至初始状态。')) {
+                        localStorage.removeItem('roadmap_departments');
+                        localStorage.removeItem('roadmap_users');
+                        localStorage.removeItem('roadmap_session');
+                        location.reload();
+                    }
+                };
+
+                // --- Dept Editing ---
+                const showDeptModal = ref(false);
+                const editingDept = ref({});
+                
+                const openDeptModal = (dept) => {
+                    if (!currentUser.value) { alert('请先登录'); return; }
+                    editingDept.value = { ...dept };
+                    showDeptModal.value = true;
+                };
+
+                const saveDept = () => {
+                    const idx = departments.value.findIndex(d => d.id === editingDept.value.id);
+                    if (idx !== -1) {
+                        departments.value[idx].name = editingDept.value.name;
+                        departments.value[idx].members = editingDept.value.members;
+                    }
+                    showDeptModal.value = false;
+                };
+
+                // --- Task Editing ---
+                const showTaskModal = ref(false);
+                const editingTask = ref({});
+
+                const openTaskModal = (task = null, deptId = null) => {
+                    if (!currentUser.value) { alert('请先登录'); return; }
+                    if (task) {
+                        editingTask.value = { ...task, deptId };
+                    } else {
+                        // New Task Default
+                        editingTask.value = {
+                            id: null,
+                            title: '',
+                            deptId: deptId || departments.value[0].id,
+                            start: 0,
+                            duration: 1,
+                            row: 0,
+                            progress: 0,
+                            avatar: currentUser.value.name.charAt(0).toUpperCase()
+                        };
+                    }
+                    showTaskModal.value = true;
+                };
+
+                const saveTask = () => {
+                    // Find target dept
+                    const targetDept = departments.value.find(d => d.id === editingTask.value.deptId);
+                    if (!targetDept) return;
+
+                    // Style logic based on dept
+                    const styleMap = {
+                        'mkt': { bg: 'bg-rose-50', border: 'border-rose-500', progress: 'bg-rose-500' },
+                        'sales': { bg: 'bg-brand-50', border: 'border-brand-500', progress: 'bg-brand-500' },
+                        'net': { bg: 'bg-emerald-50', border: 'border-emerald-500', progress: 'bg-emerald-500' },
+                        'dev': { bg: 'bg-purple-50', border: 'border-purple-500', progress: 'bg-purple-500' }
+                    };
+                    const style = styleMap[editingTask.value.deptId] || styleMap['mkt'];
+
+                    if (editingTask.value.id) {
+                        // Update existing (Check if moved dept)
+                        // Ideally we remove from old dept and add to new, but simple implementation first:
+                        // Find where it currently is
+                        let found = false;
+                        for (const d of departments.value) {
+                            const idx = d.tasks.findIndex(t => t.id === editingTask.value.id);
+                            if (idx !== -1) {
+                                if (d.id === editingTask.value.deptId) {
+                                    // Same dept update
+                                    Object.assign(d.tasks[idx], editingTask.value);
+                                    found = true;
+                                } else {
+                                    // Moved dept: remove from here
+                                    d.tasks.splice(idx, 1);
+                                }
+                                break;
+                            }
+                        }
+                        if (!found) {
+                            // Was removed or is new in this dept
+                            targetDept.tasks.push({
+                                ...editingTask.value,
+                                bgClass: style.bg,
+                                borderClass: style.border,
+                                progressColor: style.progress
+                            });
+                        }
+                    } else {
+                        // Create New
+                        const newId = Date.now();
+                        targetDept.tasks.push({
+                            ...editingTask.value,
+                            id: newId,
+                            bgClass: style.bg,
+                            borderClass: style.border,
+                            progressColor: style.progress
+                        });
+                    }
+                    showTaskModal.value = false;
+                };
+
+                const deleteTask = () => {
+                    if (!confirm('确定删除该任务吗?')) return;
+                    for (const d of departments.value) {
+                        const idx = d.tasks.findIndex(t => t.id === editingTask.value.id);
+                        if (idx !== -1) {
+                            d.tasks.splice(idx, 1);
+                            break;
+                        }
+                    }
+                    showTaskModal.value = false;
+                };
+
+                // Helper Functions for Layout
+                const getLeftPos = (startUnit) => `calc(${(startUnit / 12) * 100}% + 2px)`;
+                const getWidth = (durationUnit) => `calc(${(durationUnit / 12) * 100}% - 4px)`;
+                const getTopPos = (rowIndex) => (rowIndex * 76) + 'px';
+
+                onMounted(() => {
+                    lucide.createIcons();
+                });
+
+                return {
+                    months,
+                    departments,
+                    currentUser,
+                    showLoginModal, showManual, isRegisterMode, authForm, handleAuth, logout, clearCache,
+                    showDeptModal, editingDept, openDeptModal, saveDept,
+                    showTaskModal, editingTask, openTaskModal, saveTask, deleteTask,
+                    getLeftPos, getWidth, getTopPos
+                };
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>

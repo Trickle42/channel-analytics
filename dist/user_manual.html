@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>使用手册 - 渠道数据分析平台 v1.3</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; scroll-behavior: smooth; }
+        h1, h2, h3 { font-family: 'Plus Jakarta Sans', sans-serif; }
+        .prose h3 { margin-top: 1.5em; margin-bottom: 0.5em; font-weight: 600; color: #1e293b; }
+        .prose p { margin-bottom: 1em; color: #475569; line-height: 1.6; }
+        .prose ul { list-style-type: disc; padding-left: 1.5em; margin-bottom: 1em; color: #475569; }
+        .prose li { margin-bottom: 0.5em; }
+        .step-number { background-color: #3b82f6; color: white; width: 24px; height: 24px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 14px; font-weight: bold; margin-right: 8px; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-900">
+
+    <!-- Navbar -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <a href="index.html" class="text-slate-500 hover:text-blue-600 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd" />
+                    </svg>
+                </a>
+                <h1 class="font-bold text-xl text-slate-800">平台使用手册 <span class="text-sm font-normal text-slate-500 bg-slate-100 px-2 py-0.5 rounded ml-2">v1.3</span></h1>
+            </div>
+            <nav class="hidden md:flex space-x-8 text-sm font-medium">
+                <a href="#overview" class="text-slate-600 hover:text-blue-600">平台概览</a>
+                <a href="#revenue" class="text-slate-600 hover:text-blue-600">月租大盘分析</a>
+                <a href="#churn" class="text-slate-600 hover:text-blue-600">流失分析</a>
+                <a href="#faq" class="text-slate-600 hover:text-blue-600">常见问题</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-10">
+            <!-- Sidebar Navigation -->
+            <aside class="hidden lg:block col-span-1 sticky top-24 self-start">
+                <nav class="space-y-1">
+                    <a href="#overview" class="block px-3 py-2 text-sm font-medium text-blue-700 bg-blue-50 rounded-lg">平台概览</a>
+                    <a href="#revenue" class="block px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 rounded-lg">代理商月租大盘分析</a>
+                    <div class="pl-4 space-y-1">
+                        <a href="#revenue-upload" class="block px-3 py-1.5 text-xs text-slate-500 hover:text-blue-600">数据上传与筛选</a>
+                        <a href="#revenue-charts" class="block px-3 py-1.5 text-xs text-slate-500 hover:text-blue-600">图表功能解读</a>
+                        <a href="#revenue-detail" class="block px-3 py-1.5 text-xs text-slate-500 hover:text-blue-600">代理商详情与导出</a>
+                    </div>
+                    <a href="#churn" class="block px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 rounded-lg">流失分析</a>
+                    <div class="pl-4 space-y-1">
+                        <a href="#churn-logic" class="block px-3 py-1.5 text-xs text-slate-500 hover:text-blue-600">流失判定逻辑</a>
+                        <a href="#churn-charts" class="block px-3 py-1.5 text-xs text-slate-500 hover:text-blue-600">可视化分析</a>
+                    </div>
+                </nav>
+            </aside>
+
+            <!-- Content Area -->
+            <div class="col-span-1 lg:col-span-3 prose max-w-none">
+                
+                <!-- Overview -->
+                <section id="overview" class="mb-16 scroll-mt-24">
+                    <div class="bg-white rounded-2xl p-8 shadow-sm border border-slate-100">
+                        <h2 class="text-2xl font-bold text-slate-900 mb-4">平台概览</h2>
+                        <p>
+                            渠道数据分析平台是为政企生态合作部设计的一站式数据分析工具。平台集成了代理商全生命周期数据，通过智能化的数据处理和可视化的图表展示，帮助管理人员快速洞察业务现状，驱动科学决策。
+                        </p>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+                            <div class="bg-blue-50 p-4 rounded-xl border border-blue-100">
+                                <h3 class="!mt-0 text-blue-800 text-lg">📊 月租大盘分析</h3>
+                                <p class="!mb-0 text-sm">关注整体营收趋势，支持多维度（新签、流失、净签）的排名与趋势分析。</p>
+                            </div>
+                            <div class="bg-rose-50 p-4 rounded-xl border border-rose-100">
+                                <h3 class="!mt-0 text-rose-800 text-lg">📉 流失智能分析</h3>
+                                <p class="!mb-0 text-sm">自动判定流失去向（迁移、转直销、纯流失），精准定位流失原因。</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Revenue Analysis -->
+                <section id="revenue" class="mb-16 scroll-mt-24">
+                    <h2 class="text-2xl font-bold text-slate-900 mb-6 flex items-center">
+                        <span class="w-2 h-8 bg-blue-600 rounded mr-3"></span>
+                        代理商月租大盘分析
+                    </h2>
+
+                    <div id="revenue-upload" class="bg-white rounded-2xl p-8 shadow-sm border border-slate-100 mb-8">
+                        <h3 class="text-xl">1. 数据上传与筛选</h3>
+                        <p>在首页点击“进入分析看板”即可进入此模块。</p>
+                        <ul class="space-y-2">
+                            <li><span class="step-number">1</span><strong>上传数据：</strong> 点击页面中央的“上传月租数据”按钮，选择符合模板格式的 Excel 文件 (.xlsx/.xls)。系统会自动解析数据。</li>
+                            <li><span class="step-number">2</span><strong>业务筛选：</strong> 顶部右上角的“仅保留双线业务”复选框默认开启。取消勾选可查看全量数据。</li>
+                            <li><span class="step-number">3</span><strong>月份筛选：</strong> 使用“选择月份”下拉框，支持<strong>多选</strong>。您可以勾选特定的月份组合，或者使用“全选”功能。筛选结果将实时更新所有图表。</li>
+                        </ul>
+                    </div>
+
+                    <div id="revenue-charts" class="bg-white rounded-2xl p-8 shadow-sm border border-slate-100 mb-8">
+                        <h3 class="text-xl">2. 核心图表解读</h3>
+                        
+                        <h4 class="font-bold text-slate-700 mt-4 mb-2">月度营收趋势分析</h4>
+                        <p>展示随时间变化的营收情况。右上角提供视图切换功能：</p>
+                        <ul class="list-disc pl-5">
+                            <li><strong>全部指标 (簇状柱图)：</strong> 同时展示新签、流失、净签三项数据的柱状对比。</li>
+                            <li><strong>单项指标 (折线图)：</strong> 选择“新签”、“流失”或“净签”时，图表会自动切换为折线图，方便观察单一指标的走势。</li>
+                        </ul>
+
+                        <h4 class="font-bold text-slate-700 mt-4 mb-2">Top 20 排名榜单</h4>
+                        <p>系统自动计算并展示三个维度的 Top 20 代理商排名：</p>
+                        <ul class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-2">
+                            <li class="bg-slate-50 p-3 rounded text-sm border">🔵 <strong>新签月租排名</strong></li>
+                            <li class="bg-slate-50 p-3 rounded text-sm border">🔴 <strong>流失月租排名</strong> (按绝对值)</li>
+                            <li class="bg-slate-50 p-3 rounded text-sm border">🟢 <strong>净签月租排名</strong></li>
+                        </ul>
+                    </div>
+
+                    <div id="revenue-detail" class="bg-white rounded-2xl p-8 shadow-sm border border-slate-100">
+                        <h3 class="text-xl">3. 代理商详情查询与导出</h3>
+                        <p>
+                            在底部的“代理商详情查询”区域，输入代理商名称（支持模糊搜索）。选中代理商后，系统将生成该代理商的专属分析报告卡片，包含：
+                        </p>
+                        <ul>
+                            <li><strong>核心指标：</strong> 该代理商在选定月份内的新签、流失、净签总额。</li>
+                            <li><strong>维度分析：</strong> 客户维度与营销单元维度的 Top 50 排名图表。</li>
+                            <li><strong>业务明细：</strong> 具体的业务清单列表。</li>
+                        </ul>
+                        <div class="mt-4 bg-yellow-50 p-4 rounded-lg border border-yellow-100 text-yellow-800 text-sm flex items-start">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                            <span><strong>导出功能：</strong> 点击详情卡片右上角的“导出报告”按钮，系统将自动生成一份包含图表的 PDF 经营分析报告，可直接用于汇报。</span>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Churn Analysis -->
+                <section id="churn" class="mb-16 scroll-mt-24">
+                    <h2 class="text-2xl font-bold text-slate-900 mb-6 flex items-center">
+                        <span class="w-2 h-8 bg-rose-500 rounded mr-3"></span>
+                        流失分析
+                    </h2>
+
+                    <div class="bg-white rounded-2xl p-8 shadow-sm border border-slate-100 mb-8">
+                        <p class="text-slate-500 mb-4">
+                            通过“月租大盘分析”页面右上角的链接，或主页的“流失分析”卡片进入。
+                        </p>
+                        
+                        <div id="churn-logic">
+                            <h3 class="text-xl">1. 智能流失判定逻辑</h3>
+                            <p>系统会自动对上传数据中“金额 < 0”的记录进行分析，并根据以下逻辑归类：</p>
+                            <div class="overflow-x-auto">
+                                <table class="min-w-full text-sm text-left border rounded-lg overflow-hidden">
+                                    <thead class="bg-slate-100 font-bold">
+                                        <tr>
+                                            <th class="px-4 py-2 border-b">判定结果</th>
+                                            <th class="px-4 py-2 border-b">判定条件</th>
+                                            <th class="px-4 py-2 border-b">业务含义</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-slate-100">
+                                        <tr>
+                                            <td class="px-4 py-2"><span class="px-2 py-1 bg-emerald-100 text-emerald-700 rounded text-xs font-bold">渠道间迁移</span></td>
+                                            <td class="px-4 py-2">同一客户、同一产品在后续月份有新增记录，且归属为<strong>渠道</strong></td>
+                                            <td class="px-4 py-2">业务从一个代理商转移到了另一个代理商，全网未流失。</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="px-4 py-2"><span class="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs font-bold">渠转直</span></td>
+                                            <td class="px-4 py-2">同一客户、同一产品在后续月份有新增记录，且归属为<strong>直销</strong></td>
+                                            <td class="px-4 py-2">业务从渠道转为联通直销，利润留存。</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="px-4 py-2"><span class="px-2 py-1 bg-rose-100 text-rose-700 rounded text-xs font-bold">纯流失</span></td>
+                                            <td class="px-4 py-2">后续月份无新增记录，或无法匹配</td>
+                                            <td class="px-4 py-2">彻底流失出联通网内，需重点关注。</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="churn-charts" class="bg-white rounded-2xl p-8 shadow-sm border border-slate-100">
+                        <h3 class="text-xl">2. 可视化与导出</h3>
+                        <ul class="space-y-4">
+                            <li>
+                                <strong>流失概览卡片：</strong> 顶部四张卡片分别展示总流失金额及三类流失的具体金额。
+                            </li>
+                            <li>
+                                <strong>多维分布图：</strong>
+                                <ul class="list-disc pl-5 mt-2">
+                                    <li>营销单元分布：哪些区域流失最严重。</li>
+                                    <li>代理商流失 Top 20：哪些代理商是流失大户。</li>
+                                    <li>占比饼图：三类流失的比例构成。</li>
+                                </ul>
+                            </li>
+                            <li>
+                                <strong>明细表导出：</strong> 页面底部的表格展示每一条流失记录的判定结果。点击“导出结果 (.xlsx)”可下载完整的 Excel 明细表。
+                            </li>
+                        </ul>
+                    </div>
+                </section>
+
+                <!-- FAQ -->
+                <section id="faq" class="mb-24 scroll-mt-24">
+                    <h2 class="text-2xl font-bold text-slate-900 mb-6">常见问题</h2>
+                    <div class="space-y-4">
+                        <details class="bg-white rounded-xl border border-slate-200 p-4 cursor-pointer group">
+                            <summary class="font-bold text-slate-700 flex justify-between items-center list-none">
+                                <span>Q: 上传的文件格式有什么要求？</span>
+                                <span class="transition group-open:rotate-180">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
+                                </span>
+                            </summary>
+                            <p class="mt-4 text-sm text-slate-500 pl-4 border-l-2 border-slate-200">
+                                支持 .xlsx 和 .xls 格式。表格需包含标准字段：月份、客户名称、产品分类、万元、是否代理商、上级代理商（或渠道名称）、营销单元等。
+                            </p>
+                        </details>
+                        <details class="bg-white rounded-xl border border-slate-200 p-4 cursor-pointer group">
+                            <summary class="font-bold text-slate-700 flex justify-between items-center list-none">
+                                <span>Q: 为什么有些月份显示为 Unknown？</span>
+                                <span class="transition group-open:rotate-180">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
+                                </span>
+                            </summary>
+                            <p class="mt-4 text-sm text-slate-500 pl-4 border-l-2 border-slate-200">
+                                请检查 Excel 中的“月份”和“年份”列格式是否正确。系统会自动尝试解析 YYYYMM 或纯数字格式。如果数据缺失，将显示为 Unknown。
+                            </p>
+                        </details>
+                    </div>
+                </section>
+
+            </div>
+        </div>
+    </main>
+
+    <footer class="bg-white border-t border-slate-200 py-10 mt-10">
+        <div class="max-w-7xl mx-auto px-4 text-center text-slate-400 text-sm">
+            <p>&copy; 2026 政企数智 · 渠道数据分析平台 v1.3</p>
+        </div>
+    </footer>
+
+</body>
+</html>
