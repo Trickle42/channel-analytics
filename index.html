@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>重点业务入网审核及产品特殊折扣、佣金审批单</title>
+    <!-- 引入 FontAwesome 用于图标，虽然是老页面，功能图标还是需要的 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            font-family: 'SimSun', '宋体', serif; /* 老式字体 */
+            background-color: #fff;
+            font-size: 12px;
+            margin: 0;
+            padding: 20px;
+        }
+
+        /* 顶部 Tab 模拟 */
+        .tabs {
+            border-bottom: 1px solid #ddd;
+            margin-bottom: 10px;
+            padding-left: 10px;
+        }
+        .tab-item {
+            display: inline-block;
+            padding: 8px 20px;
+            cursor: pointer;
+            background-color: #f5f5f5;
+            border: 1px solid #ddd;
+            border-bottom: none;
+            margin-right: 2px;
+            color: #333;
+        }
+        .tab-item.active {
+            background-color: #1E90FF; /* 鲜艳的蓝色 */
+            color: white;
+            font-weight: bold;
+        }
+
+        /* 页面标题 */
+        h1 {
+            text-align: center;
+            font-size: 18px;
+            font-weight: bold;
+            margin: 15px 0;
+            font-family: 'SimHei', '黑体', sans-serif;
+        }
+
+        /* 主表格样式 */
+        .main-table {
+            width: 100%;
+            border-collapse: collapse;
+            border: 1px solid #ccc;
+        }
+        .main-table td {
+            border: 1px solid #ccc;
+            padding: 6px 8px;
+            vertical-align: middle;
+        }
+
+        /* 标签列样式 */
+        .label-col {
+            background-color: #f2f2f2;
+            width: 120px;
+            text-align: right;
+            padding-right: 10px;
+            color: #333;
+        }
+        
+        /* 区块标题行 */
+        .section-header {
+            background-color: #d3d3d3; /* 更深的灰色 */
+            font-weight: bold;
+            text-align: left;
+            padding-left: 10px;
+            color: #000;
+        }
+
+        /* 输入控件统一风格 */
+        input[type="text"], select {
+            border: 1px solid #ccc;
+            padding: 3px;
+            width: 90%;
+            font-size: 12px;
+        }
+        input[type="radio"], input[type="checkbox"] {
+            vertical-align: middle;
+            margin-right: 3px;
+        }
+        label {
+            margin-right: 15px;
+            cursor: pointer;
+        }
+        
+        /* 必填星号 */
+        .required {
+            color: red;
+            margin-left: 3px;
+        }
+
+        /* 按钮风格 */
+        .btn {
+            padding: 4px 12px;
+            border: 1px solid #999;
+            background-color: #f0f0f0;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        .btn:hover { background-color: #e0e0e0; }
+        .btn-primary {
+            background-color: #1E90FF;
+            color: white;
+            border-color: #007acc;
+        }
+        
+        /* 嵌入的物联网功能区样式 */
+        .iot-panel {
+            border: 1px dashed #666;
+            background-color: #f9f9f9;
+            padding: 10px;
+            margin: 5px 0;
+        }
+        
+        /* 材料列表表格 */
+        .material-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 5px;
+        }
+        .material-table th, .material-table td {
+            border: 1px solid #ddd;
+            padding: 5px;
+            text-align: center;
+        }
+        .material-table th { background-color: #eee; }
+        
+        /* 状态标签 */
+        .status-tag {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 2px;
+            font-size: 11px;
+        }
+        .status-ok { background-color: #e6fffa; color: #047857; border: 1px solid #a7f3d0; }
+        .status-wait { background-color: #fffbeb; color: #b45309; border: 1px solid #fde68a; }
+        
+        /* 辅助文字 */
+        .hint-text { color: #888; font-size: 11px; margin-left: 5px; }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border: 2px solid #ccc;
+            border-top-color: #333;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+
+    <div class="tabs">
+        <div class="tab-item active">起草内容</div>
+        <div class="tab-item">我提交的表单</div>
+        <div class="tab-item">草稿箱</div>
+    </div>
+
+    <h1>重点业务入网审核及产品特殊折扣、佣金审批单</h1>
+
+    <table class="main-table">
+        <!-- 基本信息 -->
+        <tr>
+            <td class="label-col">发起人</td>
+            <td>汪照杰</td>
+            <td class="label-col">申请部门</td>
+            <td>上海市分公司工业互联网事业部</td>
+        </tr>
+        <tr>
+            <td class="label-col">邮箱</td>
+            <td>wangxj1039@chinaunicom.cn</td>
+            <td class="label-col">电话</td>
+            <td>18601721502</td>
+        </tr>
+
+        <!-- 营销信息 -->
+        <tr class="section-header">
+            <td colspan="4">营销信息</td>
+        </tr>
+        <tr>
+            <td class="label-col">销售人员<span class="required">*</span></td>
+            <td><input type="text" value="汪照杰"></td>
+            <td class="label-col">客户名称<span class="required">*</span></td>
+            <td><input type="text" value="上海特斯拉超级工厂有限公司"></td>
+        </tr>
+        <tr>
+            <td class="label-col">营销模式<span class="required">*</span></td>
+            <td>
+                <label><input type="radio" name="mode">代理商</label>
+                <label><input type="radio" name="mode" checked>直销</label>
+            </td>
+            <td class="label-col">销售数量<span class="required">*</span></td>
+            <td><input type="text" value="1"></td>
+        </tr>
+        <tr>
+            <td class="label-col">联系电话<span class="required">*</span></td>
+            <td colspan="3"><input type="text" value="18601721502"></td>
+        </tr>
+
+        <!-- 客户信息 -->
+        <tr class="section-header">
+            <td colspan="4">客户信息</td>
+        </tr>
+        <tr>
+            <td class="label-col">是否参加促销<span class="required">*</span></td>
+            <td>
+                <label><input type="radio" name="promo">是</label>
+                <label><input type="radio" name="promo" checked>否</label>
+            </td>
+            <td class="label-col">是否使用其他产品<span class="required">*</span></td>
+            <td>
+                <label><input type="radio" name="other">是</label>
+                <label><input type="radio" name="other" checked>否</label>
+            </td>
+        </tr>
+        <tr>
+            <td class="label-col">是否为续签<span class="required">*</span></td>
+            <td>
+                <label><input type="radio" name="renew">是</label>
+                <label><input type="radio" name="renew" checked>否</label>
+            </td>
+            <td class="label-col">是否涉及特殊佣金<span class="required">*</span></td>
+            <td>
+                <label><input type="radio" name="comm">是</label>
+                <label><input type="radio" name="comm" checked>否</label>
+            </td>
+        </tr>
+        <tr>
+            <td class="label-col">付费方式</td>
+            <td colspan="3"><input type="text" placeholder="付费方式"></td>
+        </tr>
+
+        <!-- 产品信息云计算 -->
+        <tr class="section-header">
+            <td colspan="4">产品信息云计算</td>
+        </tr>
+        <tr>
+            <td class="label-col">申请类型<span class="required">*</span></td>
+            <td colspan="3">
+                <label><input type="radio" name="apply_type" checked>仅折扣</label>
+                <label><input type="radio" name="apply_type">仅特价</label>
+                <label><input type="radio" name="apply_type">仅佣金</label>
+                <label><input type="radio" name="apply_type">佣金及折扣</label>
+            </td>
+        </tr>
+        <tr>
+            <td class="label-col">销售产品<span class="required">*</span></td>
+            <td colspan="3" style="line-height: 2;">
+                <label><input type="checkbox">固网语音</label>
+                <label><input type="checkbox">MPLS-VPN</label>
+                <label><input type="checkbox">DPLC</label>
+                <label><input type="checkbox">ATM/FR</label>
+                <label><input type="checkbox">DIA共享类</label>
+                <br>
+                <label><input type="checkbox">DIA独享类</label>
+                <label><input type="checkbox">IDC</label>
+                <label><input type="checkbox">IPLC</label>
+                <label><input type="checkbox">固网增值</label>
+                <label><input type="checkbox">小区宽带</label>
+                <br>
+                <label><input type="checkbox">流量800</label>
+                <label><input type="checkbox">家庭融合业务</label>
+                <label><input type="checkbox">集团短彩信</label>
+                <label><input type="checkbox">呼叫中心BPO</label>
+                <label><input type="checkbox" checked>云计算</label>
+                <br>
+                <label><input type="checkbox" checked>物联网</label> <!-- 新增选项 -->
+                <label><input type="checkbox">大数据</label>
+                <label><input type="checkbox">云联网</label>
+            </td>
+        </tr>
+
+        <!-- 物联网受理资质 (新嵌入功能) -->
+        <tr class="section-header" style="background-color: #e6f7ff; color: #0056b3;">
+            <td colspan="4">
+                <i class="fa-solid fa-microchip"></i> 物联网资质受理 (智能辅助)
+            </td>
+        </tr>
+        <tr>
+            <td class="label-col">授权鉴权</td>
+            <td colspan="3">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span>客户授权码：</span>
+                    <input type="text" id="auth-code" value="AUTH-8829" style="width: 150px;">
+                    <button type="button" class="btn btn-primary" onclick="verifyAuth()" id="btn-verify">
+                        <i class="fa-solid fa-magnifying-glass"></i> 匹配授权
+                    </button>
+                    <span id="auth-msg" class="hint-text" style="display:none;"></span>
+                </div>
+                <!-- 鉴权结果面板 -->
+                <div id="auth-info-panel" style="margin-top: 10px; padding: 8px; background-color: #f0fdf4; border: 1px solid #bbf7d0; display: none;">
+                    <strong><i class="fa-solid fa-check-circle" style="color: green;"></i> 鉴权成功：</strong>
+                    <span>上海特斯拉超级工厂有限公司 (91310000MA...)</span>
+                    <span style="color: green; margin-left: 10px;">[已自动拉取三证信息]</span>
+                </div>
+            </td>
+        </tr>
+        <tr>
+            <td class="label-col">业务场景</td>
+            <td colspan="3">
+                <div style="display: flex; gap: 20px;">
+                    <label>产品：
+                        <select id="sel-product" onchange="updateMaterials()" style="width: auto;">
+                            <option value="nj_iot">南京物联网-连接服务</option>
+                            <option value="sh_local">上海本地-非连接应用</option>
+                        </select>
+                    </label>
+                    <label>动作：
+                        <select id="sel-action" onchange="updateMaterials()" style="width: auto;">
+                            <option value="new">新装入网</option>
+                            <option value="change">业务变更</option>
+                        </select>
+                    </label>
+                </div>
+            </td>
+        </tr>
+        <tr>
+            <td class="label-col">资质材料<br><span style="font-weight:normal; color:#666;">(系统自动匹配)</span></td>
+            <td colspan="3">
+                <table class="material-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 40%;">材料名称</th>
+                            <th style="width: 20%;">来源类型</th>
+                            <th style="width: 20%;">状态</th>
+                            <th style="width: 20%;">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="material-list-body">
+                        <!-- 动态生成 -->
+                    </tbody>
+                </table>
+                <div id="upload-progress" style="margin-top: 5px; font-size: 11px; color: #666; display: none;">
+                    正在上传: <span id="upload-filename"></span> ...
+                </div>
+            </td>
+        </tr>
+
+        <!-- 上传附件 (保留原有入口) -->
+        <tr>
+            <td class="label-col">其他附件</td>
+            <td colspan="3">
+                <a href="#" style="color: blue; text-decoration: underline;">上传其他非标附件...</a>
+            </td>
+        </tr>
+
+        <!-- 费用表格 -->
+        <tr class="section-header">
+            <td colspan="4">资费明细</td>
+        </tr>
+        <tr>
+            <td colspan="4" style="padding: 0;">
+                <table class="main-table" style="border: none; margin: -1px;">
+                    <tr style="background-color: #eee;">
+                        <td rowspan="2" style="width: 50px; text-align: center;">序号</td>
+                        <td rowspan="2">服务类型</td>
+                        <td rowspan="2">服务类型描述</td>
+                        <td colspan="2" style="text-align: center;">一次性费用</td>
+                        <td colspan="2" style="text-align: center;">月租费</td>
+                    </tr>
+                    <tr style="background-color: #eee;">
+                        <td style="text-align: center;">折后价格</td>
+                        <td style="text-align: center;">所需折扣</td>
+                        <td style="text-align: center;">折后价格</td>
+                        <td style="text-align: center;">所需折扣</td>
+                    </tr>
+                    <tr>
+                        <td style="text-align: center;">1</td>
+                        <td>
+                            <select style="width: 100%;">
+                                <option>公有云-沃云</option>
+                                <option>联通行业云</option>
+                            </select>
+                        </td>
+                        <td><input type="text"></td>
+                        <td><input type="text"></td>
+                        <td><input type="text"></td>
+                        <td><input type="text"></td>
+                        <td><input type="text"></td>
+                    </tr>
+                </table>
+                <div style="padding: 5px;">
+                    <button class="btn">增加</button>
+                    <button class="btn">删除</button>
+                </div>
+            </td>
+        </tr>
+    </table>
+
+    <div style="margin-top: 20px; text-align: center;">
+        <button class="btn btn-primary" style="padding: 8px 30px; font-size: 14px;">提交审批</button>
+    </div>
+
+    <script>
+        // 定义材料数据结构 (与之前一致)
+        const materialsData = {
+            basic: [
+                { id: 'b1', name: '单位有效证件复印件（加盖公章）', type: 'CRM' },
+                { id: 'b2', name: '经办人身份证', type: 'UPLOAD' },
+                { id: 'b3', name: '现场核验照片(3张)', type: 'UPLOAD' },
+                { id: 'b4', name: '法律责任告知书', type: 'UPLOAD' },
+                { id: 'b5', name: '介绍信/授权委托书（加盖公章）', type: 'CRM' }
+            ],
+            qual: [
+                { id: 'q1', name: '物联网业务服务协议', type: 'UPLOAD' },
+                { id: 'q2', name: '法人有效证件复印件（加盖公章）', type: 'CRM' }
+            ],
+            internal: [
+                { id: 'i1', name: '风险评估表', type: 'SYS' }
+            ]
+        };
+
+        // 状态变量
+        let isAuthVerified = false;
+        
+        // 鉴权逻辑
+        function verifyAuth() {
+            const btn = document.getElementById('btn-verify');
+            const msg = document.getElementById('auth-msg');
+            const infoPanel = document.getElementById('auth-info-panel');
+            
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loading-spinner"></span> 查询中...';
+            
+            setTimeout(() => {
+                isAuthVerified = true;
+                btn.innerHTML = '<i class="fa-solid fa-check"></i> 已匹配';
+                btn.style.backgroundColor = '#28a745';
+                btn.style.borderColor = '#28a745';
+                
+                infoPanel.style.display = 'block';
+                msg.style.display = 'inline';
+                msg.innerText = '鉴权成功，资质已自动填充';
+                msg.style.color = 'green';
+                
+                updateMaterials();
+            }, 800);
+        }
+
+        // 渲染材料列表
+        function updateMaterials() {
+            const tbody = document.getElementById('material-list-body');
+            tbody.innerHTML = '';
+            
+            // 合并所有列表进行展示
+            const allItems = [...materialsData.basic, ...materialsData.qual, ...materialsData.internal];
+            
+            allItems.forEach(item => {
+                const tr = document.createElement('tr');
+                
+                // 1. 名称
+                const tdName = document.createElement('td');
+                tdName.style.textAlign = 'left';
+                tdName.innerText = item.name;
+                
+                // 2. 类型
+                const tdType = document.createElement('td');
+                let typeText = '';
+                if(item.type === 'CRM') typeText = 'CRM系统自动';
+                else if(item.type === 'UPLOAD') typeText = '人工上传';
+                else if(item.type === 'SYS') typeText = '系统生成';
+                tdType.innerText = typeText;
+                
+                // 3. 状态
+                const tdStatus = document.createElement('td');
+                let statusHtml = '';
+                
+                if(item.type === 'CRM') {
+                    if(isAuthVerified) {
+                        statusHtml = '<span class="status-tag status-ok"><i class="fa-solid fa-check"></i> 源源自动匹配</span>';
+                    } else {
+                        statusHtml = '<span class="status-tag" style="color:#999;"><i class="fa-solid fa-lock"></i> 待鉴权</span>';
+                    }
+                } else if (item.type === 'SYS') {
+                     statusHtml = '<span class="status-tag status-ok">已生成</span>';
+                } else {
+                    // Upload
+                    if(item.uploaded) {
+                        statusHtml = '<span class="status-tag status-ok">已上传</span>';
+                    } else {
+                        statusHtml = '<span class="status-tag status-wait">待上传</span>';
+                    }
+                }
+                tdStatus.innerHTML = statusHtml;
+                
+                // 4. 操作
+                const tdAction = document.createElement('td');
+                if(item.type === 'UPLOAD' && !item.uploaded) {
+                    const uploadBtn = document.createElement('button');
+                    uploadBtn.className = 'btn';
+                    uploadBtn.innerHTML = '<i class="fa-solid fa-upload"></i> 上传';
+                    uploadBtn.onclick = () => simulateUpload(item, tr);
+                    tdAction.appendChild(uploadBtn);
+                } else if (item.type === 'CRM' && isAuthVerified) {
+                    tdAction.innerHTML = '<a href="#" style="color:blue;">查看</a>';
+                } else {
+                    tdAction.innerHTML = '-';
+                }
+                
+                tr.appendChild(tdName);
+                tr.appendChild(tdType);
+                tr.appendChild(tdStatus);
+                tr.appendChild(tdAction);
+                
+                tbody.appendChild(tr);
+            });
+        }
+        
+        // 模拟上传
+        function simulateUpload(item, trRow) {
+            const btn = trRow.querySelector('button');
+            if(btn) {
+                btn.disabled = true;
+                btn.innerText = '...';
+            }
+            
+            document.getElementById('upload-progress').style.display = 'block';
+            document.getElementById('upload-filename').innerText = item.name;
+            
+            setTimeout(() => {
+                item.uploaded = true;
+                document.getElementById('upload-progress').style.display = 'none';
+                updateMaterials(); // 重新渲染
+            }, 1000);
+        }
+
+        // 初始化
+        updateMaterials();
+    </script>
+</body>
+</html>
