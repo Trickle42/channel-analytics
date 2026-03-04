@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>流失分析</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+</head>
+<body class="bg-gray-50 p-6 font-sans">
+    <div class="max-w-7xl mx-auto">
+        <!-- Header -->
+        <div class="bg-white rounded-2xl shadow-sm px-8 pt-8 pb-6 mb-6 border border-gray-100 flex justify-between items-center">
+            <h1 class="text-3xl font-bold text-gray-800">流失分析</h1>
+            <div class="flex gap-4 items-center">
+                <a href="主页.html" class="text-gray-500 font-bold hover:text-gray-800 hover:underline px-4 py-2 bg-gray-50 rounded-lg">首页</a>
+                <div class="relative inline-block text-left w-48 z-50">
+                    <button type="button" onclick="toggleMonthDropdown()" class="inline-flex justify-between items-center w-full rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" id="monthFilterButton">
+                        <span>筛选月份 (全部)</span>
+                        <svg class="-mr-1 ml-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                            <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                        </svg>
+                    </button>
+                    <div id="monthDropdownMenu" class="hidden origin-top-right absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 focus:outline-none max-h-60 overflow-y-auto">
+                        <div class="py-1" id="monthDropdownList">
+                            <!-- Checkboxes populated dynamically -->
+                        </div>
+                    </div>
+                </div>
+                 <label class="flex items-center gap-2 cursor-pointer select-none">
+                    <input type="checkbox" id="productFilterCheckbox" checked class="w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500">
+                    <span class="text-sm font-medium text-gray-700">仅保留双线业务</span>
+                </label>
+                <a href="代理商签约情况分析.html" class="text-indigo-600 font-bold hover:underline px-4 py-2 bg-indigo-50 rounded-lg">&larr; 返回代理商签约情况分析</a>
+            </div>
+        </div>
+
+        <div id="view-churn" class="space-y-6">
+            <!-- Churn File Upload -->
+            <div class="bg-white rounded-2xl shadow-sm p-8 border border-gray-100">
+                <p class="text-gray-500 mb-6 italic">请上传月租数据Excel文件</p>
+                <div class="flex flex-wrap items-center gap-4 border-2 border-dashed border-gray-200 rounded-xl p-10 justify-center bg-gray-50/50">
+                    <input type="file" id="fileInputChurn" class="hidden" accept=".xlsx, .xls">
+                    <label for="fileInputChurn" class="cursor-pointer bg-teal-600 text-white px-10 py-3 rounded-full hover:bg-teal-700 transition shadow-lg shadow-teal-100 font-bold">
+                        上传月租数据
+                    </label>
+                    <div id="loadingChurn" class="hidden flex items-center gap-2 text-teal-600 font-bold">
+                        <svg class="animate-spin h-5 w-5" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                        <span>数据处理中...</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Outlier Management -->
+            <div id="outlierSection" class="hidden bg-white rounded-2xl shadow-sm p-8 border border-amber-100">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="font-bold text-amber-700 flex items-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                        异常值检测
+                    </h3>
+                    <div class="flex gap-2 items-center">
+                        <div class="flex items-center gap-2 mr-4 text-xs">
+                            <label class="text-amber-800 font-bold">筛选门槛(万元):</label>
+                            <input type="number" id="outlierThreshold" value="3" min="0.1" step="0.5" class="w-16 px-2 py-1 rounded border border-amber-300 text-center font-bold text-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-500" onchange="updateThreshold(this.value)">
+                        </div>
+                        <button onclick="confirmOutliers()" class="bg-amber-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-amber-700 font-bold">确认处理</button>
+                         <button onclick="closeOutlierSection()" class="bg-gray-100 text-gray-500 hover:bg-gray-200 px-3 py-2 rounded-lg text-sm font-bold" title="关闭模块">
+                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                         </button>
+                     </div>
+                 </div>
+                <p class="text-sm text-gray-500 mb-4">以下记录月租绝对值超过设定门槛，可能为异常数据。请勾选您希望 <span class="text-rose-600 font-bold">移除</span> 的记录，未勾选的将保留参与分析。</p>
+                <div class="max-h-60 overflow-y-auto border rounded-xl">
+                    <table class="min-w-full text-xs text-left">
+                        <thead class="bg-gray-50 sticky top-0">
+                             <tr>
+                                 <th class="px-4 py-2 w-10"><input type="checkbox" id="selectAllOutliers" onchange="toggleAllOutliers(this)"></th>
+                                 <th class="px-4 py-2 w-24">月份</th>
+                                 <th class="px-4 py-2 w-48">代理商</th>
+                                 <th class="px-4 py-2">客户名称</th>
+                                 <th class="px-4 py-2 w-32">产品</th>
+                                 <th class="px-4 py-2 w-32 text-right">月租(万元)</th>
+                             </tr>
+                         </thead>
+                         <tbody id="outlierTableBody" class="divide-y divide-gray-100"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div class="bg-white p-6 rounded-2xl shadow-sm border-l-4 border-slate-400">
+                    <div class="text-gray-400 text-xs font-bold uppercase">总流失月租(万元)</div>
+                    <div id="statTotalRevenue" class="text-3xl font-black mt-1 text-gray-700">-</div>
+                </div>
+                <div class="bg-white p-6 rounded-2xl shadow-sm border-l-4 border-emerald-500">
+                    <div class="text-gray-400 text-xs font-bold uppercase">渠道间迁移月租(万元)</div>
+                    <div id="statBetweenRevenue" class="text-3xl font-black mt-1 text-emerald-600">-</div>
+                </div>
+                <div class="bg-white p-6 rounded-2xl shadow-sm border-l-4 border-blue-500">
+                    <div class="text-gray-400 text-xs font-bold uppercase">渠转直月租(万元)</div>
+                    <div id="statToDirectRevenue" class="text-3xl font-black mt-1 text-blue-600">-</div>
+                </div>
+                <div class="bg-white p-6 rounded-2xl shadow-sm border-l-4 border-rose-500">
+                    <div class="text-gray-400 text-xs font-bold uppercase">纯流失月租(万元)</div>
+                    <div id="statPureRevenue" class="text-3xl font-black mt-1 text-rose-600">-</div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                    <h3 class="font-bold text-gray-700 mb-4 flex items-center gap-2">
+                        <span class="w-1 h-4 bg-teal-500 rounded"></span>代理商流失分布 (Top 20)
+                    </h3>
+                    <div class="h-96">
+                        <canvas id="agentBarChart"></canvas>
+                    </div>
+                </div>
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                    <h3 class="font-bold text-gray-700 mb-4 flex items-center gap-2">
+                        <span class="w-1 h-4 bg-indigo-500 rounded"></span>营销单元月租分析
+                    </h3>
+                    <div class="h-96">
+                        <canvas id="barChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                <h3 class="font-bold text-gray-700 mb-4 flex items-center gap-2">
+                    <span class="w-1 h-4 bg-blue-500 rounded"></span>流失月租占比
+                </h3>
+                <div class="h-64 flex justify-center">
+                    <canvas id="pieChart"></canvas>
+                </div>
+            </div>
+
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="font-bold text-gray-700">流失判定明细预览</h3>
+                    <button id="exportBtn" class="bg-gray-800 text-white px-6 py-2 rounded-xl text-sm hover:bg-black transition-all active:scale-95 shadow-lg">
+                        导出结果 (.xlsx)
+                    </button>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full text-xs text-left border-collapse">
+                        <thead>
+                            <tr class="bg-gray-50 text-gray-500 font-medium">
+                                <th class="px-4 py-3 border-b" data-key="preview">预览</th>
+                                <th class="px-4 py-3 border-b" data-key="客户名称">客户名称</th>
+                                <th class="px-4 py-3 border-b" data-key="营销单元简称">营销单元简称</th>
+                                <th class="px-4 py-3 border-b" data-key="产品分类">产品名称</th>
+                                <th class="px-4 py-3 border-b" data-key="月份Int">月份</th>
+                                <th class="px-4 py-3 border-b text-rose-500" data-key="万元Val">流失月租(万元)</th>
+                                <th class="px-4 py-3 border-b" data-key="判定结果">判定结果</th>
+                                <th class="px-4 py-3 border-b" data-key="上级代理商">上级代理商</th>
+                            </tr>
+                        </thead>
+                        <tbody id="resultTable" class="divide-y divide-gray-100"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Register plugin globally
+        Chart.register(ChartDataLabels);
+
+        let originalChurnJson = null;
+        let finalResults = [];
+        let pieChart, barChart, agentBarChart;
+        let sortKey = '万元Val';
+        let sortOrder = 'desc';
+
+        const fileInputChurn = document.getElementById('fileInputChurn');
+        fileInputChurn.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            document.getElementById('loadingChurn').classList.remove('hidden');
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                try {
+                    const workbook = XLSX.read(new Uint8Array(event.target.result), { type: 'array' });
+                    const sheetName = workbook.SheetNames[0];
+                    const json = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
+                    originalChurnJson = json;
+
+                    window.checkOutliers = function(data) {
+                        // document.getElementById('outlierSection').classList.add('hidden'); // Removed hiding logic
+                        const threshold = parseFloat(document.getElementById('outlierThreshold').value) || 3;
+                        
+                        // Apply current filters (month/product) to data BEFORE checking outliers
+                        // This ensures outlier detection respects the filters
+                        const filteredData = filterByProduct(data); 
+                        
+                        window.currentOutliers = filteredData.filter(r => Math.abs(parseFloat(r['万元'] || 0)) > threshold);
+                        
+                        // Always show the section if data is loaded
+                        document.getElementById('outlierSection').classList.remove('hidden');
+
+                        if (window.currentOutliers.length > 0) {
+                            const tbody = document.getElementById('outlierTableBody');
+                            tbody.innerHTML = window.currentOutliers.map((r, i) => `
+                                <tr class="hover:bg-amber-50">
+                                    <td class="px-4 py-2"><input type="checkbox" class="outlier-checkbox w-4 h-4 text-amber-600 rounded border-gray-300 focus:ring-amber-500" checked></td>
+                                    <td class="px-4 py-2 text-gray-500 text-xs">${r['月份'] || '-'}</td>
+                                    <td class="px-4 py-2 text-gray-600 font-bold text-xs" title="${r['上级代理商'] || r['渠道名称'] || ''}">${(r['上级代理商'] || r['渠道名称'] || '-').substring(0, 15)}</td>
+                                    <td class="px-4 py-2 font-medium text-gray-700 text-xs truncate max-w-xs" title="${r['客户名称'] || ''}">${r['客户名称'] || '-'}</td>
+                                    <td class="px-4 py-2 text-gray-500 text-xs">${r['产品分类'] || '-'}</td>
+                                    <td class="px-4 py-2 text-right font-bold font-mono text-xs ${parseFloat(r['万元']) > 0 ? 'text-emerald-600' : 'text-rose-600'}">${parseFloat(r['万元'] || 0).toFixed(4)}</td>
+                                </tr>
+                            `).join('');
+                        } else {
+                            document.getElementById('outlierTableBody').innerHTML = '<tr><td colspan="6" class="px-4 py-8 text-center text-gray-400 italic">当前门槛下暂无异常数据</td></tr>';
+                        }
+                        // Always run analysis regardless of outliers existence
+                        analyzeLoss(data);
+                    };
+
+                    window.updateThreshold = function(val) {
+                         // Ensure original data is available before checking
+                         if (originalChurnJson && originalChurnJson.length > 0) {
+                             checkOutliers(originalChurnJson);
+                         }
+                    };
+                    window.confirmOutliers = function() {
+                        const checkboxes = document.querySelectorAll('.outlier-checkbox');
+                        const toRemove = [];
+                        checkboxes.forEach((cb, i) => {
+                            if (cb.checked) toRemove.push(window.currentOutliers[i]);
+                        });
+                        originalChurnJson = originalChurnJson.filter(item => !toRemove.includes(item));
+                        // Removed: document.getElementById('outlierSection').classList.add('hidden');
+                        
+                        // Re-check to update the list (remove checked items from view)
+                        checkOutliers(originalChurnJson); 
+                        
+                        // Analyze
+                        analyzeLoss(originalChurnJson);
+                    };
+
+                    window.closeOutlierSection = function() {
+                         document.getElementById('outlierSection').classList.add('hidden');
+                    };
+
+                    window.toggleAllOutliers = function(source) {
+                        document.querySelectorAll('.outlier-checkbox').forEach(cb => cb.checked = source.checked);
+                    };
+
+                    checkOutliers(json);
+                    document.getElementById('loadingChurn').classList.add('hidden');
+                    
+                    // Populate month filter after data is loaded
+                    populateMonthFilter(json);
+                } catch (error) {
+                    console.error("Error parsing file:", error);
+                    alert("流失数据解析失败，请检查文件格式");
+                    document.getElementById('loadingChurn').classList.add('hidden');
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        });
+
+        function filterByProduct(json) {
+            const checkbox = document.getElementById('productFilterCheckbox');
+            if (!checkbox.checked) return json;
+            return json.filter(row => {
+                const p = String(row['产品分类'] || '');
+                return p.includes('组网') || p.includes('DIA');
+            });
+        }
+
+        // Month Dropdown Logic
+        function toggleMonthDropdown() {
+            const menu = document.getElementById('monthDropdownMenu');
+            menu.classList.toggle('hidden');
+        }
+
+        // Close dropdown when clicking outside
+        window.onclick = function(event) {
+            if (!event.target.matches('#monthFilterButton') && !event.target.closest('#monthFilterButton') && !event.target.closest('#monthDropdownMenu')) {
+                const dropdowns = document.getElementsByClassName("origin-top-right");
+                for (let i = 0; i < dropdowns.length; i++) {
+                    const openDropdown = dropdowns[i];
+                    if (!openDropdown.classList.contains('hidden')) {
+                        openDropdown.classList.add('hidden');
+                    }
+                }
+            }
+        }
+
+        function onMonthSelectionChange() {
+             if (originalChurnJson) {
+                updateMonthButtonLabel();
+                analyzeLoss(originalChurnJson);
+                checkOutliers(originalChurnJson);
+            }
+        }
+
+        function updateMonthButtonLabel() {
+             const checkedBoxes = document.querySelectorAll('.month-checkbox:checked');
+             const btn = document.getElementById('monthFilterButton').querySelector('span');
+             if (checkedBoxes.length === 0) {
+                 btn.textContent = "筛选月份 (全部)";
+             } else if (checkedBoxes.length === 1) {
+                 btn.textContent = checkedBoxes[0].value;
+             } else {
+                 btn.textContent = `已选 ${checkedBoxes.length} 个月份`;
+             }
+        }
+
+        document.getElementById('productFilterCheckbox').addEventListener('change', () => {
+            if (originalChurnJson) {
+                analyzeLoss(originalChurnJson);
+                // Re-check outliers with new product filter
+                checkOutliers(originalChurnJson);
+            }
+        });
+
+        // Removed: document.getElementById('monthFilterSelect').addEventListener('change', ...
+
+        function filterByProduct(json) {
+            const checkbox = document.getElementById('productFilterCheckbox');
+            
+            let filtered = json;
+            
+            // Apply month filter from checkboxes
+            const selectedMonths = Array.from(document.querySelectorAll('.month-checkbox:checked')).map(cb => cb.value);
+            
+            // If nothing selected, it means ALL. If selected, filter by selection.
+            if (selectedMonths.length > 0) {
+                filtered = filtered.filter(row => {
+                    const month = String(row['月份'] || '');
+                    return selectedMonths.includes(month);
+                });
+            }
+            
+            // Apply product filter if checked
+            if (checkbox.checked) {
+                filtered = filtered.filter(row => {
+                    const p = String(row['产品分类'] || '');
+                    return p.includes('组网') || p.includes('DIA');
+                });
+            }
+            
+            return filtered;
+        }
+
+        function populateMonthFilter(data) {
+            const months = [...new Set(data.map(row => String(row['月份'] || '')).filter(Boolean))].sort();
+            const container = document.getElementById('monthDropdownList');
+            container.innerHTML = '';
+            
+            // Add "Select All" option (optional, but good UX)
+            // Or just list months. Let's list months.
+            
+            months.forEach(month => {
+                const div = document.createElement('div');
+                div.className = 'flex items-center px-4 py-2 hover:bg-gray-100 cursor-pointer';
+                div.innerHTML = `
+                    <input type="checkbox" class="month-checkbox h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded mr-2" value="${month}" onchange="onMonthSelectionChange()">
+                    <label class="text-sm text-gray-700 w-full cursor-pointer">${month}</label>
+                `;
+                // Make the whole row clickable
+                div.onclick = function(e) {
+                    if (e.target.tagName !== 'INPUT') {
+                        const cb = div.querySelector('input');
+                        cb.checked = !cb.checked;
+                        onMonthSelectionChange();
+                    }
+                };
+                container.appendChild(div);
+            });
+            updateMonthButtonLabel();
+        }
+
+        function analyzeLoss(data) {
+            const filteredData = filterByProduct(data);
+            const cleanData = filteredData.map(row => {
+                const money = parseFloat(row['万元']) || 0;
+                const monthRaw = String(row['月份'] || '');
+                const monthInt = parseInt(monthRaw.replace(/[^0-9]/g, '')) || 0;
+                
+                const marketingUnit = row['营销单元'] || row['营销单元简称'] || '未知单元';
+                const parentAgent = row['上级代理商'] || row['渠道名称'] || '';
+                const customer = row['客户名称'] || '未知客户';
+                const product = row['产品分类'] || '未知产品';
+                
+                let isChannel = false;
+                let isDirect = false;
+
+                if (row['是否代理商']) {
+                    isChannel = row['是否代理商'] === '渠道';
+                    isDirect = row['是否代理商'] === '直销';
+                } else if (row['代理商类型']) {
+                    isDirect = row['代理商类型'] === '直销';
+                    isChannel = !isDirect;
+                } 
+                
+                if (!isChannel && !isDirect && parentAgent) {
+                    isChannel = true;
+                }
+
+                return {
+                    ...row,
+                    万元Val: money,
+                    月份Int: monthInt,
+                    '客户名称': customer,
+                    '产品分类': product,
+                    '营销单元简称': marketingUnit,
+                    '上级代理商': parentAgent,
+                    '渠道名称': parentAgent,
+                    _isChannel: isChannel,
+                    _isDirect: isDirect
+                };
+            });
+
+            const lossRecords = cleanData.filter(r => r.万元Val < 0 && r._isChannel);
+
+            finalResults = lossRecords.map((loss, idx) => {
+                const customer = loss['客户名称'];
+                const product = loss['产品分类'];
+                const currentMonth = loss.月份Int;
+
+                const followUps = cleanData.filter(r => 
+                    r['客户名称'] === customer && 
+                    r['产品分类'] === product && 
+                    r.月份Int >= currentMonth && 
+                    r.万元Val > 0
+                );
+
+                let category = "纯流失";
+                if (followUps.some(f => f._isChannel)) category = "渠道间迁移";
+                else if (followUps.some(f => f._isDirect)) category = "渠转直";
+
+                return { ...loss, "判定结果": category, __index: idx + 1 };
+            });
+
+            renderChurnDashboard(finalResults);
+        }
+
+        function setupSorting() {
+            const headers = document.querySelectorAll('thead th[data-key]');
+            headers.forEach(th => {
+                th.classList.add('cursor-pointer', 'select-none');
+                th.onclick = () => {
+                    const key = th.dataset.key;
+                    if (sortKey === key) {
+                        sortOrder = sortOrder === 'asc' ? 'desc' : 'asc';
+                    } else {
+                        sortKey = key;
+                        sortOrder = (key === '万元Val' || key === '月份Int' || key === 'preview') ? 'desc' : 'asc';
+                    }
+                    updateTable(finalResults);
+                };
+            });
+        }
+
+        function getSortVal(row, key) {
+            if (key === 'preview') return row.__index || 0;
+            if (key === '月份Int') return row.月份Int || 0;
+            if (key === '万元Val') return row.万元Val || 0;
+            const v = row[key];
+            return (v === undefined || v === null) ? '' : String(v);
+        }
+
+        function updateTable(results) {
+            const sorted = [...results].sort((a, b) => {
+                const av = getSortVal(a, sortKey);
+                const bv = getSortVal(b, sortKey);
+                const isNumber = typeof av === 'number' && typeof bv === 'number';
+                if (isNumber) {
+                    return sortOrder === 'asc' ? av - bv : bv - av;
+                } else {
+                    const cmp = String(av).localeCompare(String(bv), 'zh-Hans');
+                    return sortOrder === 'asc' ? cmp : -cmp;
+                }
+            });
+            const tbody = document.getElementById('resultTable');
+            tbody.innerHTML = sorted.slice(0, 100).map((r, i) => `
+                <tr class="hover:bg-gray-50 transition-colors">
+                    <td class="px-4 py-3 text-gray-500">${i + 1}</td>
+                    <td class="px-4 py-3 font-medium text-gray-700">${r['客户名称'] || '-'}</td>
+                    <td class="px-4 py-3 text-gray-500">${r['营销单元简称'] || '-'}</td>
+                    <td class="px-4 py-3 text-gray-500">${r['产品分类'] || '-'}</td>
+                    <td class="px-4 py-3 text-gray-500">${r['月份'] || '-'}</td>
+                    <td class="px-4 py-3 text-rose-500 font-bold font-mono">${r['万元'] ?? '-'}</td>
+                    <td class="px-4 py-3"><span class="px-2 py-1 rounded-full text-[10px] font-bold ${getBadge(r.判定结果)}">${r.判定结果}</span></td>
+                    <td class="px-4 py-3 text-gray-500">${r['上级代理商'] || '-'}</td>
+                </tr>
+            `).join('');
+        }
+
+        function renderChurnDashboard(results) {
+            const stats = {
+                total: results.length,
+                between: results.filter(r => r.判定结果 === "渠道间迁移").length,
+                toDirect: results.filter(r => r.判定结果 === "渠转直").length,
+                pure: results.filter(r => r.判定结果 === "纯流失").length,
+                totalRevenue: results.reduce((sum, r) => sum + Math.abs(r.万元Val), 0),
+                betweenRevenue: results.filter(r => r.判定结果 === "渠道间迁移").reduce((sum, r) => sum + Math.abs(r.万元Val), 0),
+                toDirectRevenue: results.filter(r => r.判定结果 === "渠转直").reduce((sum, r) => sum + Math.abs(r.万元Val), 0),
+                pureRevenue: results.filter(r => r.判定结果 === "纯流失").reduce((sum, r) => sum + Math.abs(r.万元Val), 0),
+            };
+            document.getElementById('statTotalRevenue').innerText = stats.totalRevenue.toFixed(2);
+            document.getElementById('statBetweenRevenue').innerText = stats.betweenRevenue.toFixed(2);
+            document.getElementById('statToDirectRevenue').innerText = stats.toDirectRevenue.toFixed(2);
+            document.getElementById('statPureRevenue').innerText = stats.pureRevenue.toFixed(2);
+
+            // Pie Chart
+            if(pieChart) pieChart.destroy();
+            pieChart = new Chart(document.getElementById('pieChart').getContext('2d'), {
+                type: 'pie',
+                data: {
+                    labels: ['渠道间迁移', '渠转直', '纯流失'],
+                    datasets: [{
+                        data: [stats.betweenRevenue, stats.toDirectRevenue, stats.pureRevenue],
+                        backgroundColor: ['#10B981', '#3B82F6', '#F43F5E'],
+                        hoverOffset: 10
+                    }]
+                },
+                options: { 
+                    maintainAspectRatio: false,
+                    plugins: {
+                        datalabels: {
+                            formatter: (value, ctx) => {
+                                let sum = ctx.chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
+                                return (value * 100 / sum).toFixed(1) + '%';
+                            },
+                            color: '#fff',
+                            font: { weight: 'bold' }
+                        }
+                    }
+                }
+            });
+
+            // Bar Chart (Marketing Unit)
+            const unitMap = {};
+            results.forEach(r => {
+                const unit = r['营销单元简称'] || '未知单元';
+                unitMap[unit] = (unitMap[unit] || 0) + Math.abs(r.万元Val);
+            });
+            const sortedUnits = Object.entries(unitMap).sort((a, b) => b[1] - a[1]);
+
+            if(barChart) barChart.destroy();
+            barChart = new Chart(document.getElementById('barChart').getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels: sortedUnits.map(x => x[0]),
+                    datasets: [{
+                        label: '流失月租(万元)',
+                        data: sortedUnits.map(x => x[1].toFixed(2)),
+                        backgroundColor: '#6366F1'
+                    }]
+                },
+                options: { 
+                    maintainAspectRatio: false,
+                    plugins: {
+                        datalabels: {
+                            anchor: 'end',
+                            align: 'top',
+                            formatter: (val) => parseFloat(val).toFixed(2),
+                            color: '#555',
+                            font: { weight: 'bold' }
+                        }
+                    }
+                }
+            });
+
+            // Agent Bar Chart (Churn Top 20)
+            const agentMap = {};
+            results.forEach(r => {
+                const agent = r['上级代理商'] || '未知代理商';
+                agentMap[agent] = (agentMap[agent] || 0) + Math.abs(r.万元Val);
+            });
+            const sortedAgents = Object.entries(agentMap).sort((a, b) => b[1] - a[1]).slice(0, 20);
+
+            if(agentBarChart) agentBarChart.destroy();
+            agentBarChart = new Chart(document.getElementById('agentBarChart').getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels: sortedAgents.map(x => x[0]),
+                    datasets: [{
+                        label: '流失月租(万元)',
+                        data: sortedAgents.map(x => x[1].toFixed(2)),
+                        backgroundColor: '#14B8A6'
+                    }]
+                },
+                options: { 
+                    maintainAspectRatio: false, 
+                    indexAxis: 'y',
+                    scales: { y: { ticks: { autoSkip: false } } },
+                    plugins: {
+                        datalabels: {
+                            anchor: 'end',
+                            align: 'end',
+                            formatter: (val) => parseFloat(val).toFixed(2),
+                            color: '#555',
+                            font: { weight: 'bold' }
+                        }
+                    }
+                }
+            });
+
+            const tbody = document.getElementById('resultTable');
+            setupSorting();
+            updateTable(results);
+        }
+
+        function getBadge(t) {
+            if (t === '渠道间迁移') return 'bg-emerald-100 text-emerald-700';
+            if (t === '渠转直') return 'bg-blue-100 text-blue-700';
+            return 'bg-rose-100 text-rose-700';
+        }
+
+        document.getElementById('exportBtn').onclick = function() {
+            const ws = XLSX.utils.json_to_sheet(finalResults);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "流失判定结果");
+            XLSX.writeFile(wb, "渠道流失分析.xlsx");
+        };
+    </script>
+</body>
+</html>

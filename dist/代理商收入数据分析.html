@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>代理商收入数据分析</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+</head>
+<body class="bg-gray-50 p-6 font-sans">
+    <div class="max-w-7xl mx-auto">
+        <!-- Header -->
+        <div class="bg-white rounded-2xl shadow-sm px-8 pt-8 pb-6 mb-6 border border-gray-100 flex justify-between items-center">
+            <h1 class="text-3xl font-bold text-gray-800">代理商收入数据分析</h1>
+            <div class="flex gap-4 items-center">
+                <a href="主页.html" class="text-gray-500 font-bold hover:text-gray-800 hover:underline px-4 py-2 bg-gray-50 rounded-lg">首页</a>
+                
+                <!-- Month Filter -->
+                <div class="relative inline-block text-left w-48 z-50">
+                    <button type="button" onclick="toggleMonthDropdown()" class="inline-flex justify-between items-center w-full rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" id="monthFilterButton" disabled>
+                        <span>筛选月份 (全部)</span>
+                        <svg class="-mr-1 ml-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                        </svg>
+                    </button>
+                    <div id="monthDropdownMenu" class="hidden origin-top-right absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 focus:outline-none max-h-60 overflow-y-auto z-50">
+                        <div class="py-1" id="monthDropdownList">
+                            <!-- Checkboxes populated dynamically -->
+                            <div class="px-4 py-2 text-gray-400 text-sm italic">请先上传数据</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="space-y-6">
+            <!-- Upload Section -->
+            <div class="bg-white rounded-2xl shadow-sm p-8 border border-gray-100">
+                <p class="text-gray-500 mb-6 italic">请上传收入数据Excel文件 (包含：账期、客户名称、简称、集客渠道、代理商名称、类型、等级、产品名称、产品类型、万元)</p>
+                <div class="flex flex-wrap items-center gap-4 border-2 border-dashed border-gray-200 rounded-xl p-10 justify-center bg-gray-50/50">
+                    <input type="file" id="fileInput" class="hidden" accept=".xlsx, .xls">
+                    <label for="fileInput" class="cursor-pointer bg-teal-600 text-white px-10 py-3 rounded-full hover:bg-teal-700 transition shadow-lg shadow-teal-100 font-bold">
+                        上传收入数据
+                    </label>
+                    <div id="loadingIndicator" class="hidden flex items-center gap-2 text-teal-600 font-bold">
+                        <svg class="animate-spin h-5 w-5" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                        <span>数据处理中...</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Revenue Trend Analysis -->
+            <div id="trendSection" class="hidden bg-white rounded-2xl shadow-sm p-8 border border-gray-100">
+                <h3 class="font-bold text-gray-700 mb-6 flex items-center gap-2 text-xl">
+                    <span class="w-1 h-6 bg-indigo-500 rounded"></span>收入趋势分析
+                </h3>
+                <div class="h-96 w-full">
+                    <canvas id="revenueTrendChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Agent Detail Query -->
+            <div id="agentQuerySection" class="hidden bg-white rounded-2xl shadow-sm p-8 border border-gray-100 min-h-[500px]">
+                <h3 class="font-bold text-gray-700 mb-6 flex items-center gap-2 text-xl">
+                    <span class="w-1 h-6 bg-blue-500 rounded"></span>代理商详情查询
+                </h3>
+                
+                <!-- Search Box -->
+                <div class="relative max-w-xl mx-auto mb-10">
+                    <div class="relative">
+                        <input type="text" id="agentSearchInput" 
+                            class="w-full pl-12 pr-4 py-4 rounded-xl border border-gray-200 shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-lg transition-all" 
+                            placeholder="输入代理商名称搜索..." autocomplete="off">
+                        <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                            <svg class="h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                        </div>
+                    </div>
+                    <!-- Dropdown Results -->
+                    <div id="agentSearchResults" class="hidden absolute z-10 w-full mt-2 bg-white rounded-xl shadow-lg border border-gray-100 max-h-60 overflow-y-auto">
+                        <!-- Results populated dynamically -->
+                    </div>
+                </div>
+
+                <!-- Agent Detail Card -->
+                <div id="agentDetailCard" class="hidden animate-fade-in-up">
+                    <div class="bg-gray-50 rounded-2xl p-6 border border-gray-200 mb-8">
+                        <h2 id="selectedAgentName" class="text-2xl font-black text-gray-800 mb-2">代理商名称</h2>
+                        <div class="text-gray-500 text-sm">收入详情分析报告</div>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+                        <!-- Core Metrics: Product Type -->
+                        <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                            <h4 class="font-bold text-gray-700 mb-4 text-lg">各产品类型收入分布</h4>
+                            <div class="h-80">
+                                <canvas id="productTypeChart"></canvas>
+                            </div>
+                        </div>
+
+                        <!-- Product Type List -->
+                        <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col">
+                            <h4 class="font-bold text-gray-700 mb-4 text-lg">产品类型收入明细</h4>
+                            <div class="overflow-y-auto flex-1 pr-2">
+                                <table class="min-w-full text-sm text-left">
+                                    <thead class="bg-gray-50 text-gray-500 font-medium sticky top-0">
+                                        <tr>
+                                            <th class="px-4 py-2">排名</th>
+                                            <th class="px-4 py-2">产品类型</th>
+                                            <th class="px-4 py-2 text-right">收入(万元)</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="productTypeList" class="divide-y divide-gray-100">
+                                        <!-- Rows populated dynamically -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        <!-- Dimension: Customer Name -->
+                        <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                            <h4 class="font-bold text-gray-700 mb-4 text-lg">Top 20 客户收入贡献</h4>
+                            <div class="h-96">
+                                <canvas id="customerChart"></canvas>
+                            </div>
+                        </div>
+
+                        <!-- Dimension: Marketing Unit -->
+                        <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                            <h4 class="font-bold text-gray-700 mb-4 text-lg">Top 20 营销单元收入贡献</h4>
+                            <div class="h-96">
+                                <canvas id="unitChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Register Chart.js plugin
+        Chart.register(ChartDataLabels);
+
+        // Global State
+        let globalData = [];
+        let filteredData = [];
+        let availableMonths = [];
+        let availableAgents = [];
+        let trendChart = null;
+        let productTypeChart = null;
+        let customerChart = null;
+        let unitChart = null;
+
+        // DOM Elements
+        const fileInput = document.getElementById('fileInput');
+        const loadingIndicator = document.getElementById('loadingIndicator');
+        const monthFilterButton = document.getElementById('monthFilterButton');
+        const monthDropdownList = document.getElementById('monthDropdownList');
+        const trendSection = document.getElementById('trendSection');
+        const agentQuerySection = document.getElementById('agentQuerySection');
+        const agentSearchInput = document.getElementById('agentSearchInput');
+        const agentSearchResults = document.getElementById('agentSearchResults');
+        const agentDetailCard = document.getElementById('agentDetailCard');
+
+        // Event Listeners
+        fileInput.addEventListener('change', handleFileUpload);
+        
+        // Month Dropdown Logic
+        window.toggleMonthDropdown = function() {
+            const menu = document.getElementById('monthDropdownMenu');
+            menu.classList.toggle('hidden');
+        };
+
+        // Close dropdown when clicking outside
+        window.onclick = function(event) {
+            if (!event.target.closest('#monthFilterButton') && !event.target.closest('#monthDropdownMenu')) {
+                document.getElementById('monthDropdownMenu').classList.add('hidden');
+            }
+            if (!event.target.closest('#agentSearchInput') && !event.target.closest('#agentSearchResults')) {
+                agentSearchResults.classList.add('hidden');
+            }
+        };
+
+        // File Upload Handler
+        function handleFileUpload(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            loadingIndicator.classList.remove('hidden');
+            const reader = new FileReader();
+
+            reader.onload = function(event) {
+                try {
+                    const workbook = XLSX.read(new Uint8Array(event.target.result), { type: 'array' });
+                    const sheetName = workbook.SheetNames[0];
+                    const json = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
+                    
+                    processData(json);
+                    
+                    loadingIndicator.classList.add('hidden');
+                    trendSection.classList.remove('hidden');
+                    agentQuerySection.classList.remove('hidden');
+                    monthFilterButton.disabled = false;
+                    
+                } catch (error) {
+                    console.error("Error parsing file:", error);
+                    alert("数据解析失败，请检查文件格式是否包含所需字段");
+                    loadingIndicator.classList.add('hidden');
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function processData(json) {
+            // Normalize and extract relevant fields
+            globalData = json.map(row => ({
+                '账期': String(row['账期'] || ''),
+                '客户名称': String(row['客户名称'] || '未知客户'),
+                '简称': String(row['简称'] || '未知单元'),
+                '集客渠道': String(row['集客渠道'] || ''),
+                '代理商名称': String(row['代理商名称'] || '未知代理商'),
+                '类型': String(row['类型'] || ''),
+                '等级': String(row['等级'] || ''),
+                '产品名称': String(row['产品名称'] || ''),
+                '产品类型': String(row['产品类型'] || '未知类型'),
+                '万元': parseFloat(row['万元'] || 0)
+            })).filter(item => item['账期']); // Ensure billing period exists
+
+            // Extract unique months for filter
+            availableMonths = [...new Set(globalData.map(d => d['账期']))].sort();
+            
+            // Extract unique agents for search
+            availableAgents = [...new Set(globalData.map(d => d['代理商名称']))].sort();
+
+            populateMonthFilter();
+            applyFilter(); // Initial render with all data
+        }
+
+        function populateMonthFilter() {
+            monthDropdownList.innerHTML = '';
+            
+            availableMonths.forEach(month => {
+                const div = document.createElement('div');
+                div.className = 'flex items-center px-4 py-2 hover:bg-gray-100 cursor-pointer';
+                div.innerHTML = `
+                    <input type="checkbox" class="month-checkbox h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded mr-2" value="${month}" checked onchange="applyFilter()">
+                    <label class="text-sm text-gray-700 w-full cursor-pointer">${month}</label>
+                `;
+                div.onclick = function(e) {
+                    if (e.target.tagName !== 'INPUT') {
+                        const cb = div.querySelector('input');
+                        cb.checked = !cb.checked;
+                        applyFilter();
+                    }
+                };
+                monthDropdownList.appendChild(div);
+            });
+            updateMonthButtonLabel();
+        }
+
+        function updateMonthButtonLabel() {
+            const checkedBoxes = document.querySelectorAll('.month-checkbox:checked');
+            const btn = document.getElementById('monthFilterButton').querySelector('span');
+            if (checkedBoxes.length === 0) {
+                btn.textContent = "未选择月份";
+            } else if (checkedBoxes.length === availableMonths.length) {
+                btn.textContent = "筛选月份 (全部)";
+            } else {
+                btn.textContent = `已选 ${checkedBoxes.length} 个月份`;
+            }
+        }
+
+        function applyFilter() {
+            const selectedMonths = Array.from(document.querySelectorAll('.month-checkbox:checked')).map(cb => cb.value);
+            
+            filteredData = globalData.filter(d => selectedMonths.includes(d['账期']));
+            
+            updateMonthButtonLabel();
+            renderTrendChart();
+            
+            // If an agent is already selected, refresh their charts with new filtered data
+            const currentAgent = document.getElementById('selectedAgentName').innerText;
+            if (!agentDetailCard.classList.contains('hidden') && currentAgent !== '代理商名称') {
+                showAgentDetail(currentAgent);
+            }
+        }
+
+        function renderTrendChart() {
+            // Aggregate revenue by month
+            const trendMap = {};
+            // Initialize with 0 for selected months to ensure continuity if needed, 
+            // or just based on data. Let's base on data sorted by time.
+            
+            // Sort filtered data by month first just in case
+            const sortedData = [...filteredData].sort((a, b) => a['账期'].localeCompare(b['账期']));
+            
+            // Get all unique months in sorted order from the current filtered set
+            const months = [...new Set(sortedData.map(d => d['账期']))];
+            
+            months.forEach(m => trendMap[m] = 0);
+            
+            sortedData.forEach(d => {
+                trendMap[d['账期']] += d['万元'];
+            });
+
+            const labels = months;
+            const data = labels.map(m => trendMap[m].toFixed(2));
+
+            const ctx = document.getElementById('revenueTrendChart').getContext('2d');
+            
+            if (trendChart) trendChart.destroy();
+
+            trendChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: '总收入(万元)',
+                        data: data,
+                        borderColor: '#6366F1',
+                        backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                        borderWidth: 3,
+                        pointBackgroundColor: '#fff',
+                        pointBorderColor: '#6366F1',
+                        pointRadius: 5,
+                        pointHoverRadius: 7,
+                        fill: true,
+                        tension: 0.3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                            backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                            titleColor: '#1F2937',
+                            bodyColor: '#4B5563',
+                            borderColor: '#E5E7EB',
+                            borderWidth: 1,
+                            callbacks: {
+                                label: function(context) {
+                                    return `收入: ${context.parsed.y} 万元`;
+                                }
+                            }
+                        },
+                        datalabels: {
+                            display: false // Hide data labels on line chart to avoid clutter
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: { borderDash: [2, 4] }
+                        },
+                        x: {
+                            grid: { display: false }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Agent Search Logic
+        agentSearchInput.addEventListener('input', (e) => {
+            const query = e.target.value.trim().toLowerCase();
+            if (query.length === 0) {
+                agentSearchResults.classList.add('hidden');
+                return;
+            }
+
+            const matches = availableAgents.filter(agent => agent.toLowerCase().includes(query)).slice(0, 10);
+            
+            if (matches.length > 0) {
+                agentSearchResults.innerHTML = matches.map(agent => `
+                    <div class="px-4 py-3 hover:bg-gray-50 cursor-pointer text-gray-700 transition-colors" onclick="selectAgent('${agent}')">
+                        ${agent}
+                    </div>
+                `).join('');
+                agentSearchResults.classList.remove('hidden');
+            } else {
+                agentSearchResults.innerHTML = '<div class="px-4 py-3 text-gray-400 text-sm">未找到匹配代理商</div>';
+                agentSearchResults.classList.remove('hidden');
+            }
+        });
+
+        window.selectAgent = function(agentName) {
+            agentSearchInput.value = agentName;
+            agentSearchResults.classList.add('hidden');
+            showAgentDetail(agentName);
+        };
+
+        function showAgentDetail(agentName) {
+            const agentData = filteredData.filter(d => d['代理商名称'] === agentName);
+            
+            document.getElementById('selectedAgentName').textContent = agentName;
+            agentDetailCard.classList.remove('hidden');
+
+            // 1. Core Metrics: Product Type
+            const productMap = {};
+            agentData.forEach(d => {
+                productMap[d['产品类型']] = (productMap[d['产品类型']] || 0) + d['万元'];
+            });
+            
+            const sortedProducts = Object.entries(productMap).sort((a, b) => b[1] - a[1]);
+            
+            renderProductTypeChart(sortedProducts);
+            renderProductTypeList(sortedProducts);
+
+            // 2. Dimension: Customer Name (Top 20)
+            const customerMap = {};
+            agentData.forEach(d => {
+                customerMap[d['客户名称']] = (customerMap[d['客户名称']] || 0) + d['万元'];
+            });
+            const sortedCustomers = Object.entries(customerMap).sort((a, b) => b[1] - a[1]).slice(0, 20);
+            renderCustomerChart(sortedCustomers);
+
+            // 3. Dimension: Marketing Unit (Top 20)
+            const unitMap = {};
+            agentData.forEach(d => {
+                unitMap[d['简称']] = (unitMap[d['简称']] || 0) + d['万元'];
+            });
+            const sortedUnits = Object.entries(unitMap).sort((a, b) => b[1] - a[1]).slice(0, 20);
+            renderUnitChart(sortedUnits);
+            
+            // Scroll to detail card
+            agentDetailCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        function renderProductTypeChart(data) {
+            const ctx = document.getElementById('productTypeChart').getContext('2d');
+            if (productTypeChart) productTypeChart.destroy();
+
+            productTypeChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: data.map(d => d[0]),
+                    datasets: [{
+                        label: '收入(万元)',
+                        data: data.map(d => d[1].toFixed(2)),
+                        backgroundColor: '#8B5CF6',
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        datalabels: {
+                            anchor: 'end',
+                            align: 'top',
+                            formatter: (val) => Number(val).toFixed(2),
+                            color: '#6B7280',
+                            font: { size: 10, weight: 'bold' }
+                        }
+                    },
+                    scales: {
+                        y: { beginAtZero: true },
+                        x: { grid: { display: false } }
+                    }
+                }
+            });
+        }
+
+        function renderProductTypeList(data) {
+            const tbody = document.getElementById('productTypeList');
+            tbody.innerHTML = data.map((d, i) => `
+                <tr class="hover:bg-gray-50">
+                    <td class="px-4 py-2 text-gray-500 font-mono">${i + 1}</td>
+                    <td class="px-4 py-2 font-medium text-gray-700">${d[0]}</td>
+                    <td class="px-4 py-2 text-right font-bold text-indigo-600">${d[1].toFixed(2)}</td>
+                </tr>
+            `).join('');
+        }
+
+        function renderCustomerChart(data) {
+            const ctx = document.getElementById('customerChart').getContext('2d');
+            if (customerChart) customerChart.destroy();
+
+            customerChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: data.map(d => d[0]),
+                    datasets: [{
+                        label: '收入(万元)',
+                        data: data.map(d => d[1].toFixed(2)),
+                        backgroundColor: '#10B981',
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        datalabels: {
+                            display: false // Hide for cleaner look on top 20
+                        }
+                    },
+                    scales: {
+                        y: { beginAtZero: true },
+                        x: { 
+                            grid: { display: false },
+                            ticks: { autoSkip: false, maxRotation: 45, minRotation: 45 }
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderUnitChart(data) {
+            const ctx = document.getElementById('unitChart').getContext('2d');
+            if (unitChart) unitChart.destroy();
+
+            unitChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: data.map(d => d[0]),
+                    datasets: [{
+                        label: '收入(万元)',
+                        data: data.map(d => d[1].toFixed(2)),
+                        backgroundColor: '#F59E0B',
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        datalabels: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: { beginAtZero: true },
+                        x: { 
+                            grid: { display: false },
+                            ticks: { autoSkip: false, maxRotation: 45, minRotation: 45 }
+                        }
+                    }
+                }
+            });
+        }
+    </script>
+    <style>
+        .animate-fade-in-up {
+            animation: fadeInUp 0.5s ease-out;
+        }
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</body>
+</html>
